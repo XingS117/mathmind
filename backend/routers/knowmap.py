@@ -1,0 +1,86 @@
+import json, logging
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session as DBSession
+from backend.database import get_db
+from backend.models.question import Question
+from backend.services.knowmap_service import get_tree, get_node, get_subtree
+
+logger = logging.getLogger(__name__)
+router = APIRouter(tags=["knowmap"])
+
+def _parse_json(val):
+    """Parse a JSON string to Python object, handling SQLAlchemy JSON column quirks."""
+    if val is None: return []
+    if isinstance(val, (list, dict)): return val
+    if isinstance(val, str):
+        try: return json.loads(val)
+        except: return []
+    return []
+
+@router.get("/knowmap/tree")
+def knowmap_tree(grade: str = Query(""), db: DBSession = Depends(get_db)):
+    nodes = get_tree(grade)
+    node_map = {n["id"]: n for n in nodes}
+    raw_counts = {}
+    for q in db.query(Question).filter(Question.status == "complete").all():
+        for nid in _parse_json(q.knowmap_nodes):
+            if nid in node_map:
+                raw_counts[nid] = raw_counts.get(nid, 0) + 1
+    final = dict(raw_counts)
+    for nid, cnt in raw_counts.items():
+        pid = node_map[nid].get("parent_id")
+        seen = {nid}
+        while pid and pid in node_map and pid not in seen:
+            seen.add(pid)
+            final[pid] = final.get(pid, 0) + cnt
+            pid = node_map[pid].get("parent_id")
+    return {"nodes": [dict(n) for n in nodes], "question_counts": final}
+
+@router.get("/knowmap/summary")
+def knowmap_summary(grade: str = Query(""), db: DBSession = Depends(get_db)):
+    tree = get_tree(grade)
+    l1 = [n for n in tree if n["level"] == 1]
+    total = 0
+    per_book = {}
+    for book in l1:
+        desc = set()
+        def collect(nid):
+            desc.add(nid)
+            n = get_node(nid)
+            if n:
+                for c in n.get("children", []): collect(c)
+        collect(book["id"])
+        cnt = 0
+        for q in db.query(Question).filter(Question.status == "complete").all():
+            if any(n in desc for n in _parse_json(q.knowmap_nodes)):
+                cnt += 1
+        total += cnt
+        per_book[book["name"]] = {"count": cnt, "children": len(book.get("children", []))}
+    return {"grade": grade or "全部", "total_questions": total, "total_nodes": len(tree), "per_book": per_book}
+
+@router.get("/knowmap/nodes/{node_id}/questions")
+def node_questions(node_id: str, grade: str = Query(""), db: DBSession = Depends(get_db)):
+    subtree = get_subtree(node_id)
+    desc_ids = set(n["id"] for n in subtree)
+    result = []
+    for q in db.query(Question).filter(Question.status == "complete").order_by(Question.created_at.desc()).all():
+        if any(n in desc_ids for n in _parse_json(q.knowmap_nodes)):
+            result.append({
+                "id": q.id,
+                "text": (q.text or "")[:80],
+                "question_type": q.question_type or "题目",
+                "difficulty": q.difficulty or 1,
+                "source_label": q.source_label or "好题",
+                "knowledge_points": _parse_json(q.knowledge_points),
+            })
+    return {"questions": result}
+
+@router.get("/knowmap/nodes/{node_id}")
+def knowmap_node(node_id: str):
+    node = get_node(node_id)
+    if not node: raise HTTPException(404, "Node not found")
+    return node
+
+@router.get("/knowmap/nodes/{node_id}/subtree")
+def knowmap_subtree(node_id: str):
+    return {"nodes": get_subtree(node_id)}

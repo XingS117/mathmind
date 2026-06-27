@@ -1,0 +1,35 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+venv/
+.env
+
+# Node
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+# Data
+data/*.db
+data/vectors/
+data/*.log
+data/*.err.log
+data/chrome-*.png
+
+# Unrelated local research artifacts
+/ai-news-*/
+/hn_ids*.txt
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp
+_temp/
+*.tmp

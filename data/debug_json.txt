@@ -1,0 +1,52 @@
+﻿import json, logging
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session as DBSession
+from backend.database import get_db
+from backend.models.question import Question
+from backend.services.knowmap_service import get_tree, get_node, get_subtree
+
+logger = logging.getLogger(__name__)
+router = APIRouter(tags=["knowmap"])
+
+@router.get("/knowmap/tree")
+def knowmap_tree(grade: str = Query(""), db: DBSession = Depends(get_db)):
+    nodes = get_tree(grade)
+    counts = {}
+    questions = db.query(Question).filter(Question.status == "complete").all()
+    for q in questions:
+        nids = q.knowmap_nodes
+        if isinstance(nids, str):
+            try: nids = json.loads(nids)
+            except: nids = []
+        for nid in (nids or []):
+            counts[nid] = counts.get(nid, 0) + 1
+    return {"nodes": [dict(n) for n in nodes], "question_counts": counts}
+
+@router.get("/knowmap/summary")
+def knowmap_summary(grade: str = Query(""), db: DBSession = Depends(get_db)):
+    tree = get_tree(grade)
+    l1_nodes = [n for n in tree if n["level"] == 1]
+    questions = db.query(Question).filter(Question.status == "complete").all()
+    total = len(questions)
+
+    per_book = {}
+    for book in l1_nodes:
+        leaf_ids = [n["id"] for n in tree if n["parent_id"] == book["id"] or n["id"] in book.get("children", [])]
+        leaf_set = set(leaf_ids)
+        count = 0
+        for q in questions:
+            nids = q.knowmap_nodes
+            if isinstance(nids, str):
+                try: nids = json.loads(nids)
+                except: nids = []
+            if any(n in leaf_set for n in (nids or [])):
+                count += 1
+        children_ids = [n["id"] for n in tree if n.get("parent_id") == book["id"]]
+        per_book[book["name"]] = {"count": count, "children": len(children_ids)}
+
+    return {
+        "grade": grade or "全部",
+        "total_questions": total,
+        "total_nodes": len(tree),
+        "per_book": per_book
+    }

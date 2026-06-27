@@ -1,0 +1,33 @@
+from sqlalchemy import Column, String, Integer, Boolean, Text, JSON, DateTime, func
+from backend.database import Base
+
+class Question(Base):
+    __tablename__ = "questions"
+    id = Column(String, primary_key=True)
+    user_id = Column(String, nullable=False)
+    source = Column(String, default="photo")
+    source_label = Column(String, default="错题")
+    tags = Column(JSON, default=list)
+    raw_image_path = Column(String)
+    raw_ocr_text = Column(Text, default="")
+    analysis_source = Column(String, default="manual")
+    analysis_confidence = Column(Integer, default=0)
+    review_status = Column(String, default="draft")
+    needs_human_review = Column(Boolean, default=True)
+    text = Column(Text)
+    latex = Column(Text)
+    question_type = Column(String)
+    knowledge_points = Column(JSON, default=list)
+    knowmap_nodes = Column(JSON, default=list)
+    difficulty = Column(Integer, default=1)
+    has_diagram = Column(Boolean, default=False)
+    diagram_json = Column(Text)
+    final_answer = Column(Text)
+    solution_json = Column(JSON)
+    teaching_json = Column(JSON)
+    is_variant = Column(Boolean, default=False)
+    parent_question_id = Column(String, nullable=True)
+    variant_level = Column(Integer, nullable=True)
+    status = Column(String, default="pending")
+    error_message = Column(String)
+    created_at = Column(DateTime, server_default=func.now())

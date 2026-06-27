@@ -1,0 +1,49 @@
+﻿import os, sys, logging
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session as DBSession
+from backend.database import init_db, get_db, SessionLocal
+from backend.routers import knowmap, upload, tutor, learn, settings, auth, admin, review, health
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+app = FastAPI(title="MathMind - ShuZhiXueTang", version="0.1.0")
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+@app.on_event("startup")
+def startup():
+    init_db()
+    db = SessionLocal()
+    from backend.models.user import User
+    if not db.query(User).first():
+        db.add(User(id="u_default", username="default", name="学生"))
+    from backend.services.seed_service import seed_database
+    seed_database(db)
+    from backend.services.auth_service import hash_password
+    import os as _os
+    admin_user = db.query(User).filter(User.role == "admin").first()
+    if not admin_user:
+        admin_pass = _os.getenv("ADMIN_PASS", "admin123")
+        admin = User(id="u_admin", username="admin", password_hash=hash_password(admin_pass), name="管理员", role="admin", school_level="高中")
+        db.add(admin)
+        db.commit()
+        logger.info(f"Default admin created (password: {admin_pass})")
+    db.close()
+    from backend.services.ocr_service import init_ocr_background
+    init_ocr_background()
+    logger.info("Startup complete")
+
+app.include_router(knowmap.router, prefix="/api/v1")
+app.include_router(upload.router, prefix="/api/v1")
+app.include_router(tutor.router, prefix="/api/v1")
+app.include_router(learn.router, prefix="/api/v1")
+app.include_router(settings.router, prefix="/api/v1")
+app.include_router(auth.router, prefix="/api/v1")
+app.include_router(admin.router, prefix="/api/v1")
+app.include_router(review.router, prefix="/api/v1")
+app.include_router(health.router, prefix="/api/v1")
+
+@app.get("/health")
+def health():
+    return {"status": "ok", "version": "0.1.0"}

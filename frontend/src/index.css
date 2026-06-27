@@ -1,0 +1,111 @@
+﻿*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --brand: #1e40af; --brand-light: #3b82f6; --brand-bg: #eff6ff;
+  --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --text-secondary: #475569;
+  --text-muted: #94a3b8; --border: #e2e8f0;
+  --success: #10b981; --warning: #f59e0b; --error: #ef4444;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow: 0 1px 3px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07),0 2px 4px -1px rgba(0,0,0,0.04);
+  --radius: 12px; --radius-sm: 8px;
+}
+@keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+@keyframes blink { 0%,100% { opacity:0.3; } 50% { opacity:1; } }
+html { font-size: 16px; }
+body { font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans SC",sans-serif; background:var(--bg); color:var(--text); line-height:1.6; -webkit-font-smoothing:antialiased; min-height:100vh; }
+details>summary { list-style:none; cursor:pointer; }
+details>summary::-webkit-details-marker { display:none; }
+::selection { background:var(--brand-light); color:white; }
+/* WenXing Logo animations */
+#wx-star-path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: wx-star-draw 1200ms cubic-bezier(0.65,0,0.35,1) 200ms forwards;
+}
+@keyframes wx-star-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+#wx-wen-character {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scale(0.9);
+  animation: wx-wen-reveal 400ms cubic-bezier(0.16,1,0.3,1) 1100ms forwards,
+             wx-wen-pulse 2000ms ease-in-out 1500ms infinite alternate;
+}
+@keyframes wx-wen-reveal {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes wx-wen-pulse {
+  from { opacity: 1; }
+  to { opacity: 0.85; }
+}
+#wx-logo-root {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: wx-breathe 4000ms ease-in-out 1500ms infinite alternate;
+}
+@keyframes wx-breathe {
+  from { transform: scale(1); }
+  to { transform: scale(1.02); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #wx-star-path { stroke-dashoffset: 0; animation: none; }
+  #wx-wen-character { opacity: 1; transform: scale(1); animation: none; }
+  #wx-logo-root { animation: none; }
+}
+
+@media (max-width: 640px) {
+  .app-shell {
+    padding: 16px !important;
+    max-width: 100% !important;
+    overflow-x: hidden;
+  }
+
+  .app-header {
+    display: flex !important;
+    flex-wrap: wrap;
+    align-items: center !important;
+    justify-content: center;
+    gap: 12px !important;
+  }
+
+  .app-title {
+    order: 2;
+    flex: 1 1 100%;
+    text-align: center !important;
+  }
+
+  .app-title-line {
+    flex-wrap: wrap;
+    gap: 4px 8px !important;
+  }
+
+  .app-title-cn,
+  .app-title-en {
+    white-space: nowrap;
+    font-size: 20px !important;
+  }
+
+  .app-actions {
+    order: 3;
+    flex: 1 1 100%;
+    align-items: center !important;
+  }
+
+  .app-nav {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .app-nav button {
+    padding: 7px 12px !important;
+  }
+
+  .grade-toggle {
+    align-self: center;
+  }
+}

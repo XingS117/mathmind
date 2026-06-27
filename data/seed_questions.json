@@ -1,0 +1,889 @@
+[
+  {
+    "id": "q_seed_01",
+    "source_label": "重点题",
+    "text": "已知函数 f(x) = 2x + 1，求 f(3) 的值。",
+    "question_type": "计算题",
+    "difficulty": 1,
+    "knowledge_points": [
+      "一次函数",
+      "函数求值"
+    ],
+    "knowmap_nodes": [
+      "bx1_c3_s1"
+    ],
+    "final_answer": "f(3) = 7",
+    "has_diagram": false,
+    "solution_json": {
+      "steps": [
+        {
+          "step_number": 1,
+          "description": "代入x=3",
+          "latex": "f(3)=2*3+1",
+          "result": "f(3)=6+1"
+        },
+        {
+          "step_number": 2,
+          "description": "计算",
+          "latex": "f(3)=7",
+          "result": "f(3)=7"
+        }
+      ],
+      "final_answer": "7",
+      "method": "代入法",
+      "difficulty": 1,
+      "knowledge_points": [
+        "一次函数",
+        "函数求值"
+      ],
+      "common_mistakes": [
+        "忘记先乘除后加减"
+      ]
+    },
+    "teaching_json": {
+      "teachable_steps": [
+        {
+          "step_number": 1,
+          "title": "理解题意",
+          "guiding_question": "这道题要求什么？",
+          "expected_answer": "求f(3)的值",
+          "correct_response": "对，求f(3)的值。那f(3)表示什么意思？",
+          "wrong_response": "再读一遍题，最后一句问的是什么？",
+          "hint": "f(3)表示x=3时函数的值",
+          "stuck_response": "f(3)表示把x=3代入函数f(x)"
+        },
+        {
+          "step_number": 2,
+          "title": "代入计算",
+          "guiding_question": "f(3)等于多少？",
+          "expected_answer": "7",
+          "correct_response": "对！2*3=6，再加1得7。",
+          "wrong_response": "注意运算顺序：先乘后加。",
+          "hint": "2*3+1=6+1=?",
+          "stuck_response": "f(3)=2*3+1=6+1=7"
+        }
+      ],
+      "prerequisites": [
+        "代数运算"
+      ]
+    }
+  },
+  {
+    "id": "q_seed_02",
+    "source_label": "重点题",
+    "text": "求二次函数 y = x² - 4x + 3 的顶点坐标。",
+    "question_type": "计算题",
+    "difficulty": 2,
+    "knowledge_points": [
+      "二次函数",
+      "配方法"
+    ],
+    "knowmap_nodes": [
+      "bx1_c2_s3"
+    ],
+    "final_answer": "顶点坐标为 (2, -1)",
+    "has_diagram": false,
+    "solution_json": {
+      "steps": [
+        {
+          "step_number": 1,
+          "description": "配方",
+          "latex": "y=(x-2)²-1",
+          "result": "y=(x-2)²-1"
+        },
+        {
+          "step_number": 2,
+          "description": "读顶点",
+          "result": "顶点(2,-1)"
+        }
+      ],
+      "final_answer": "(2,-1)",
+      "method": "配方法",
+      "difficulty": 2,
+      "knowledge_points": [
+        "二次函数",
+        "配方法"
+      ],
+      "common_mistakes": [
+        "配方时忘记调整常数项"
+      ]
+    },
+    "teaching_json": {
+      "teachable_steps": [
+        {
+          "step_number": 1,
+          "title": "回顾方法",
+          "guiding_question": "求顶点坐标最常用的方法？",
+          "expected_answer": "配方法",
+          "correct_response": "对！用配方法转成顶点式。",
+          "wrong_response": "想想怎么把一般式变成顶点式？",
+          "hint": "顶点式y=a(x-h)²+k",
+          "stuck_response": "把y=x²-4x+3配方成y=(x-2)²-1"
+        },
+        {
+          "step_number": 2,
+          "title": "配方",
+          "guiding_question": "x²-4x+3配方后等于？",
+          "expected_answer": "(x-2)²-1",
+          "correct_response": "对！那顶点坐标是？",
+          "wrong_response": "x²-4x加4减4，别忘了还有+3",
+          "hint": "x²-4x+4=(x-2)²",
+          "stuck_response": "y=(x-2)²-1"
+        },
+        {
+          "step_number": 3,
+          "title": "读顶点",
+          "guiding_question": "顶点坐标是？",
+          "expected_answer": "(2,-1)",
+          "correct_response": "对！顶点(2,-1)。",
+          "wrong_response": "顶点式(x-h)²+k中h=2,k=-1",
+          "hint": "对称轴x=2",
+          "stuck_response": "顶点坐标为(2,-1)"
+        }
+      ],
+      "prerequisites": [
+        "完全平方公式"
+      ]
+    }
+  },
+  {
+    "id": "q_seed_03",
+    "source_label": "好题",
+    "text": "已知等差数列 {an} 中，a1=2，d=3，求 a10 的值。",
+    "question_type": "填空题",
+    "difficulty": 2,
+    "knowledge_points": [
+      "等差数列",
+      "通项公式"
+    ],
+    "knowmap_nodes": [
+      "xb2_c1_s2"
+    ],
+    "final_answer": "a10 = 29",
+    "has_diagram": false,
+    "solution_json": {
+      "steps": [
+        {
+          "step_number": 1,
+          "description": "通项公式",
+          "latex": "an=a1+(n-1)d",
+          "result": "an=2+(n-1)*3"
+        },
+        {
+          "step_number": 2,
+          "description": "代入n=10",
+          "latex": "a10=2+9*3",
+          "result": "=29"
+        }
+      ],
+      "final_answer": "29",
+      "method": "等差通项公式",
+      "difficulty": 2,
+      "knowledge_points": [
+        "等差数列"
+      ],
+      "common_mistakes": [
+        "n-1忘记减1"
+      ]
+    },
+    "teaching_json": {
+      "teachable_steps": [
+        {
+          "step_number": 1,
+          "title": "回忆公式",
+          "guiding_question": "等差通项公式是？",
+          "expected_answer": "an=a1+(n-1)d",
+          "correct_response": "对！a1和d各是多少？",
+          "wrong_response": "公式里有(n-1)哦",
+          "hint": "an=a1+(n-1)d",
+          "stuck_response": "an=a1+(n-1)d"
+        },
+        {
+          "step_number": 2,
+          "title": "代入计算",
+          "guiding_question": "a1=2,d=3,n=10，代入等于？",
+          "expected_answer": "29",
+          "correct_response": "对！2+9*3=29。n=10时n-1=9。",
+          "wrong_response": "计算2+(10-1)*3",
+          "hint": "9*3=27，2+27=29",
+          "stuck_response": "a10=2+9*3=29"
+        }
+      ],
+      "prerequisites": [
+        "代数运算"
+      ]
+    }
+  },
+  {
+    "id": "q_seed_04",
+    "source_label": "重点题",
+    "text": "求函数 f(x) = x³ - 3x² + 2 的极值。",
+    "question_type": "解答题",
+    "difficulty": 3,
+    "knowledge_points": [
+      "导数",
+      "函数极值"
+    ],
+    "knowmap_nodes": [
+      "xb2_c2_s3"
+    ],
+    "final_answer": "极大值f(0)=2，极小值f(2)=-2",
+    "has_diagram": false,
+    "solution_json": {
+      "steps": [
+        {
+          "step_number": 1,
+          "description": "求导",
+          "latex": "f'(x)=3x²-6x",
+          "result": "3x²-6x"
+        },
+        {
+          "step_number": 2,
+          "description": "驻点",
+          "latex": "3x(x-2)=0",
+          "result": "x=0或x=2"
+        },
+        {
+          "step_number": 3,
+          "description": "二阶导判断",
+          "latex": "f''(x)=6x-6",
+          "result": "f''(0)=-6<0极大；f''(2)=6>0极小"
+        },
+        {
+          "step_number": 4,
+          "description": "求极值",
+          "latex": "f(0)=2,f(2)=-2",
+          "result": "极大值2，极小值-2"
+        }
+      ],
+      "final_answer": "极大值2(x=0)，极小值-2(x=2)",
+      "method": "导数法",
+      "difficulty": 3,
+      "knowledge_points": [
+        "导数",
+        "极值"
+      ],
+      "common_mistakes": [
+        "忘记用二阶导判断"
+      ]
+    },
+    "teaching_json": {
+      "teachable_steps": [
+        {
+          "step_number": 1,
+          "title": "求导",
+          "guiding_question": "第一步做什么？",
+          "expected_answer": "求导",
+          "correct_response": "对！f'(x)=？",
+          "wrong_response": "幂函数求导：x³→3x²",
+          "hint": "f'(x)=3x²-6x",
+          "stuck_response": "f'(x)=3x²-6x"
+        },
+        {
+          "step_number": 2,
+          "title": "驻点",
+          "guiding_question": "f'(x)=0的解是？",
+          "expected_answer": "x=0或2",
+          "correct_response": "对！3x(x-2)=0。",
+          "wrong_response": "因式分解3x²-6x",
+          "hint": "提公因式3x",
+          "stuck_response": "x=0或x=2"
+        },
+        {
+          "step_number": 3,
+          "title": "判断",
+          "guiding_question": "怎么判断极大极小？",
+          "expected_answer": "用二阶导",
+          "correct_response": "对！f''(0)和f''(2)",
+          "wrong_response": "再求一次导",
+          "hint": "f''(x)=6x-6，代入驻点",
+          "stuck_response": "f''(0)=-6<0极大，f''(2)=6>0极小"
+        },
+        {
+          "step_number": 4,
+          "title": "求极值",
+          "guiding_question": "代入原函数得？",
+          "expected_answer": "f(0)=2,f(2)=-2",
+          "correct_response": "对！极大值2，极小值-2。",
+          "wrong_response": "f(0)=0-0+2",
+          "hint": "f(2)=8-12+2=-2",
+          "stuck_response": "极大值2，极小值-2"
+        }
+      ],
+      "prerequisites": [
+        "导数运算"
+      ]
+    }
+  },
+  {
+    "id": "q_seed_05",
+    "source_label": "好题",
+    "text": "已知 sinα = 3/5，α 为第二象限角，求 cosα 和 tanα 的值。",
+    "question_type": "计算题",
+    "difficulty": 2,
+    "knowledge_points": [
+      "三角函数",
+      "同角关系"
+    ],
+    "knowmap_nodes": [
+      "bx1_c5_s2"
+    ],
+    "final_answer": "cosα=-4/5，tanα=-3/4",
+    "has_diagram": false,
+    "solution_json": {
+      "steps": [
+        {
+          "step_number": 1,
+          "description": "平方关系",
+          "latex": "sin²+cos²=1",
+          "result": "cos²=16/25"
+        },
+        {
+          "step_number": 2,
+          "description": "定符号",
+          "result": "第二象限cos<0，cos=-4/5"
+        },
+        {
+          "step_number": 3,
+          "description": "求正切",
+          "latex": "tan=sin/cos",
+          "result": "tan=-3/4"
+        }
+      ],
+      "final_answer": "cosα=-4/5,tanα=-3/4",
+      "method": "同角关系",
+      "difficulty": 2,
+      "knowledge_points": [
+        "三角函数",
+        "同角关系"
+      ],
+      "common_mistakes": [
+        "象限符号判断错"
+      ]
+    },
+    "teaching_json": {
+      "teachable_steps": [
+        {
+          "step_number": 1,
+          "title": "平方关系",
+          "guiding_question": "求cosα用什么关系？",
+          "expected_answer": "sin²+cos²=1",
+          "correct_response": "对！cos²=1-9/25=16/25",
+          "wrong_response": "同角三角函数基本关系",
+          "hint": "sin²α+cos²α=1",
+          "stuck_response": "cos²=1-(3/5)²=16/25"
+        },
+        {
+          "step_number": 2,
+          "title": "定符号",
+          "guiding_question": "cosα=±4/5，符号怎么定？",
+          "expected_answer": "第二象限cos为负",
+          "correct_response": "对！α在第二象限，cos<0。",
+          "wrong_response": "第二象限余弦正负？",
+          "hint": "第二象限x<0，cos<0",
+          "stuck_response": "cosα=-4/5"
+        },
+        {
+          "step_number": 3,
+          "title": "求正切",
+          "guiding_question": "tanα怎么求？",
+          "expected_answer": "sin/cos",
+          "correct_response": "对！tan=(3/5)/(-4/5)=-3/4",
+          "wrong_response": "tanα=sinα/cosα",
+          "hint": "(3/5)/(-4/5)",
+          "stuck_response": "tanα=-3/4"
+        }
+      ],
+      "prerequisites": [
+        "象限符号"
+      ]
+    }
+  },
+  {
+    "id": "q_seed_06",
+    "source_label": "重点题",
+    "text": "椭圆焦点F1(-3,0)、F2(3,0)，过点P(4,0)，求标准方程。",
+    "question_type": "解答题",
+    "difficulty": 3,
+    "knowledge_points": [
+      "椭圆",
+      "标准方程"
+    ],
+    "knowmap_nodes": [
+      "xb1_c3_s1"
+    ],
+    "final_answer": "x²/16+y²/7=1",
+    "has_diagram": false,
+    "solution_json": {
+      "steps": [
+        {
+          "step_number": 1,
+          "description": "确定c",
+          "result": "c=3"
+        },
+        {
+          "step_number": 2,
+          "description": "椭圆定义求a",
+          "latex": "2a=|PF1|+|PF2|=8",
+          "result": "a=4"
+        },
+        {
+          "step_number": 3,
+          "description": "求b²",
+          "latex": "b²=a²-c²=16-9",
+          "result": "b²=7"
+        }
+      ],
+      "final_answer": "x²/16+y²/7=1",
+      "method": "椭圆定义法",
+      "difficulty": 3,
+      "knowledge_points": [
+        "椭圆",
+        "标准方程"
+      ],
+      "common_mistakes": [
+        "a和c搞混"
+      ]
+    },
+    "teaching_json": {
+      "teachable_steps": [
+        {
+          "step_number": 1,
+          "title": "确定c",
+          "guiding_question": "从焦点坐标知道c=？",
+          "expected_answer": "c=3",
+          "correct_response": "对！c=3，焦点在x轴。",
+          "wrong_response": "c是焦点到原点距离",
+          "hint": "焦点(±c,0)",
+          "stuck_response": "c=3，焦点在x轴上"
+        },
+        {
+          "step_number": 2,
+          "title": "求a",
+          "guiding_question": "椭圆定义怎么求a？",
+          "expected_answer": "2a=|PF1|+|PF2|=7+1=8,a=4",
+          "correct_response": "对！椭圆上点到两焦点距离之和为2a。",
+          "wrong_response": "|PF1|=4-(-3)=7，|PF2|=4-3=1",
+          "hint": "2a=8，a=4",
+          "stuck_response": "a=4"
+        },
+        {
+          "step_number": 3,
+          "title": "求方程",
+          "guiding_question": "b²怎么求？",
+          "expected_answer": "b²=a²-c²=16-9=7",
+          "correct_response": "对！方程为x²/16+y²/7=1",
+          "wrong_response": "椭圆中a²=b²+c²",
+          "hint": "b²=16-9",
+          "stuck_response": "x²/16+y²/7=1"
+        }
+      ],
+      "prerequisites": [
+        "椭圆定义"
+      ]
+    }
+  },
+  {
+    "id": "q_seed_07",
+    "source_label": "好题",
+    "text": "等比数列{an}中，a1=1，q=2，求前5项和S5。",
+    "question_type": "填空题",
+    "difficulty": 2,
+    "knowledge_points": [
+      "等比数列",
+      "前n项和"
+    ],
+    "knowmap_nodes": [
+      "xb2_c1_s3"
+    ],
+    "final_answer": "S5=31",
+    "has_diagram": false,
+    "solution_json": {
+      "steps": [
+        {
+          "step_number": 1,
+          "description": "求和公式",
+          "latex": "Sn=a1(1-q^n)/(1-q)",
+          "result": "S5=1*(1-32)/(1-2)"
+        },
+        {
+          "step_number": 2,
+          "description": "计算",
+          "result": "S5=31"
+        }
+      ],
+      "final_answer": "31",
+      "method": "等比求和公式",
+      "difficulty": 2,
+      "knowledge_points": [
+        "等比数列",
+        "前n项和"
+      ],
+      "common_mistakes": [
+        "分母是1-q不是q-1"
+      ]
+    },
+    "teaching_json": {
+      "teachable_steps": [
+        {
+          "step_number": 1,
+          "title": "回忆公式",
+          "guiding_question": "等比前n项和公式？",
+          "expected_answer": "Sn=a1(1-q^n)/(1-q)",
+          "correct_response": "对！q不等于1。",
+          "wrong_response": "Sn=a1(1-q^n)/(1-q)",
+          "hint": "a1(1-q^n)/(1-q)",
+          "stuck_response": "Sn=a1(1-q^n)/(1-q)"
+        },
+        {
+          "step_number": 2,
+          "title": "代入计算",
+          "guiding_question": "a1=1,q=2,n=5，代入等于？",
+          "expected_answer": "31",
+          "correct_response": "对！(1-32)/(-1)=31",
+          "wrong_response": "先算2^5=32",
+          "hint": "(1-32)/(-1)=(-31)/(-1)",
+          "stuck_response": "S5=(1-32)/(-1)=31"
+        }
+      ],
+      "prerequisites": [
+        "幂运算"
+      ]
+    }
+  },
+  {
+    "id": "q_seed_08",
+    "source_label": "重点题",
+    "text": "在直角三角形ABC中，角C=90度，AC=3，BC=4，求AB的长度。",
+    "question_type": "几何题",
+    "difficulty": 2,
+    "knowledge_points": [
+      "勾股定理",
+      "直角三角形"
+    ],
+    "knowmap_nodes": [
+      "cz_bs1_c1"
+    ],
+    "final_answer": "AB=5",
+    "has_diagram": true,
+    "diagram_json": {
+      "type": "right_triangle",
+      "points": {
+        "A": {
+          "x": 0,
+          "y": 3,
+          "label": "A"
+        },
+        "B": {
+          "x": 4,
+          "y": 0,
+          "label": "B"
+        },
+        "C": {
+          "x": 0,
+          "y": 0,
+          "label": "C"
+        }
+      },
+      "lines": [
+        {
+          "from": "A",
+          "to": "B",
+          "style": "solid",
+          "label": "AB=?"
+        },
+        {
+          "from": "B",
+          "to": "C",
+          "style": "solid",
+          "label": "BC=4"
+        },
+        {
+          "from": "A",
+          "to": "C",
+          "style": "solid",
+          "label": "AC=3"
+        }
+      ]
+    },
+    "solution_json": {
+      "steps": [
+        {
+          "step_number": 1,
+          "description": "勾股定理",
+          "latex": "AB²=AC²+BC²=3²+4²=25",
+          "result": "AB²=25"
+        },
+        {
+          "step_number": 2,
+          "description": "开方",
+          "latex": "AB=√25",
+          "result": "AB=5"
+        }
+      ],
+      "final_answer": "5",
+      "method": "勾股定理",
+      "difficulty": 2,
+      "knowledge_points": [
+        "勾股定理",
+        "直角三角形"
+      ],
+      "common_mistakes": [
+        "忘记开方"
+      ]
+    },
+    "teaching_json": {
+      "teachable_steps": [
+        {
+          "step_number": 1,
+          "title": "识别题型",
+          "guiding_question": "已知直角三角形两边求第三边，用什么定理？",
+          "expected_answer": "勾股定理",
+          "correct_response": "对！a²+b²=c²。那这里哪条是斜边？",
+          "wrong_response": "直角三角形三边关系？",
+          "hint": "勾股定理：a²+b²=c²",
+          "stuck_response": "用勾股定理：AB²=AC²+BC²"
+        },
+        {
+          "step_number": 2,
+          "title": "代入计算",
+          "guiding_question": "AC=3，BC=4，AB²=？",
+          "expected_answer": "25",
+          "correct_response": "对！3²+4²=9+16=25",
+          "wrong_response": "3²=9，4²=16，加起来",
+          "hint": "9+16=25",
+          "stuck_response": "AB²=25"
+        },
+        {
+          "step_number": 3,
+          "title": "开方",
+          "guiding_question": "AB等于多少？",
+          "expected_answer": "5",
+          "correct_response": "对！开方得5。线段为正。",
+          "wrong_response": "根号25等于？",
+          "hint": "5²=25",
+          "stuck_response": "AB=5"
+        }
+      ],
+      "prerequisites": [
+        "平方运算"
+      ]
+    }
+  },
+  {
+    "id": "q_seed_09",
+    "source_label": "好题",
+    "text": "已知圆O的半径为5，弦AB的长为6，求圆心O到弦AB的距离。",
+    "question_type": "几何题",
+    "difficulty": 3,
+    "knowledge_points": [
+      "圆",
+      "弦心距"
+    ],
+    "knowmap_nodes": [
+      "cz_js1_c4"
+    ],
+    "final_answer": "圆心到弦的距离=4",
+    "has_diagram": true,
+    "diagram_json": {
+      "type": "circle_chord",
+      "points": {
+        "O": {
+          "x": 5,
+          "y": 3,
+          "label": "O"
+        },
+        "A": {
+          "x": 2,
+          "y": 0,
+          "label": "A"
+        },
+        "B": {
+          "x": 8,
+          "y": 0,
+          "label": "B"
+        },
+        "C": {
+          "x": 5,
+          "y": 0,
+          "label": "C"
+        }
+      },
+      "lines": [
+        {
+          "from": "A",
+          "to": "B",
+          "style": "solid",
+          "label": "AB=6"
+        },
+        {
+          "from": "O",
+          "to": "A",
+          "style": "solid",
+          "label": "r=5"
+        },
+        {
+          "from": "O",
+          "to": "C",
+          "style": "dashed",
+          "label": "d=?"
+        },
+        {
+          "from": "O",
+          "to": "B",
+          "style": "solid"
+        }
+      ]
+    },
+    "solution_json": {
+      "steps": [
+        {
+          "step_number": 1,
+          "description": "作垂线",
+          "result": "过O作OC垂直AB于C，C为AB中点，AC=3"
+        },
+        {
+          "step_number": 2,
+          "description": "勾股定理",
+          "latex": "OC²=OA²-AC²=25-9=16",
+          "result": "OC=4"
+        }
+      ],
+      "final_answer": "4",
+      "method": "弦心距+勾股定理",
+      "difficulty": 3,
+      "knowledge_points": [
+        "圆",
+        "弦心距"
+      ],
+      "common_mistakes": [
+        "忘记取中点"
+      ]
+    },
+    "teaching_json": {
+      "teachable_steps": [
+        {
+          "step_number": 1,
+          "title": "作辅助线",
+          "guiding_question": "求弦心距的常规方法？",
+          "expected_answer": "过圆心作弦的垂线",
+          "correct_response": "对！垂径定理：过圆心作弦的垂线，平分弦。",
+          "wrong_response": "圆心到弦的距离怎么构造？",
+          "hint": "过O作AB的垂线，垂足C",
+          "stuck_response": "作OC垂直AB于C"
+        },
+        {
+          "step_number": 2,
+          "title": "找中点",
+          "guiding_question": "C是AB的什么点？AC=？",
+          "expected_answer": "C是AB中点，AC=3",
+          "correct_response": "对！垂径定理：OC平分AB，AC=3。",
+          "wrong_response": "垂径定理怎么说的？",
+          "hint": "AC=AB/2=3",
+          "stuck_response": "AC=AB/2=3"
+        },
+        {
+          "step_number": 3,
+          "title": "勾股定理",
+          "guiding_question": "在Rt三角形OAC中，OC²=？",
+          "expected_answer": "5²-3²=16，OC=4",
+          "correct_response": "对！OC²=25-9=16，OC=4。",
+          "wrong_response": "OA=5，AC=3，用勾股定理",
+          "hint": "OC²=OA²-AC²=25-9",
+          "stuck_response": "OC=根号16=4"
+        }
+      ],
+      "prerequisites": [
+        "勾股定理",
+        "垂径定理"
+      ]
+    }
+  },
+  {
+    "id": "q_seed_10",
+    "source_label": "重点题",
+    "text": "已知正方体ABCD-A1B1C1D1的棱长为2，求异面直线A1B与B1C所成角的余弦值。",
+    "question_type": "解答题",
+    "difficulty": 4,
+    "knowledge_points": [
+      "立体几何",
+      "空间向量",
+      "异面直线"
+    ],
+    "knowmap_nodes": [
+      "xb1_c1_s4"
+    ],
+    "final_answer": "cosθ=1/2",
+    "has_diagram": false,
+    "solution_json": {
+      "steps": [
+        {
+          "step_number": 1,
+          "description": "建系",
+          "result": "A(0,0,0),B(2,0,0),A1(0,0,2),B1(2,0,2),C(2,2,0),C1(2,2,2)"
+        },
+        {
+          "step_number": 2,
+          "description": "求向量",
+          "latex": "A1B=(2,0,-2),B1C=(0,2,-2)",
+          "result": "向量坐标"
+        },
+        {
+          "step_number": 3,
+          "description": "夹角公式",
+          "latex": "cosθ=4/(根号8*根号8)=4/8",
+          "result": "=1/2"
+        }
+      ],
+      "final_answer": "cosθ=1/2",
+      "method": "空间向量法",
+      "difficulty": 4,
+      "knowledge_points": [
+        "立体几何",
+        "空间向量",
+        "异面直线"
+      ],
+      "common_mistakes": [
+        "建系坐标错误"
+      ]
+    },
+    "teaching_json": {
+      "teachable_steps": [
+        {
+          "step_number": 1,
+          "title": "建立坐标系",
+          "guiding_question": "求异面直线夹角，首选方法？",
+          "expected_answer": "空间向量法，先建系",
+          "correct_response": "对！以A为原点，AB、AD、AA1为坐标轴。",
+          "wrong_response": "用空间向量法",
+          "hint": "以正方体一个顶点为原点",
+          "stuck_response": "建系，标出各点坐标"
+        },
+        {
+          "step_number": 2,
+          "title": "求向量坐标",
+          "guiding_question": "A1B和B1C的坐标是？",
+          "expected_answer": "A1B=(2,0,-2),B1C=(0,2,-2)",
+          "correct_response": "对！注意方向向量。",
+          "wrong_response": "A1(0,0,2),B(2,0,0)，坐标相减",
+          "hint": "A1B=B-A1=(2,0,-2)",
+          "stuck_response": "A1B=(2,0,-2),B1C=(0,2,-2)"
+        },
+        {
+          "step_number": 3,
+          "title": "计算夹角",
+          "guiding_question": "套夹角公式，cosθ=？",
+          "expected_answer": "1/2",
+          "correct_response": "对！cosθ=4/(根号8*根号8)=1/2。",
+          "wrong_response": "数量积除以模长乘积",
+          "hint": "根号8*根号8=8，4/8=1/2",
+          "stuck_response": "cosθ=1/2"
+        }
+      ],
+      "prerequisites": [
+        "空间向量",
+        "坐标运算"
+      ]
+    }
+  }
+]
