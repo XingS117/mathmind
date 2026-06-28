@@ -9,6 +9,8 @@
 
 - 产品定位、范围和阶段方案：[`../SPEC.md`](../SPEC.md)
 - 当前进度、验证结果和恢复入口：本文档
+- Agent 接续入口和当前执行门禁：[`AGENT_HANDOFF.md`](AGENT_HANDOFF.md)
+- 新 Agent 可复制启动指令：[`AGENT_START_PROMPT.md`](AGENT_START_PROMPT.md)
 - Phase B 历史实现计划：[`superpowers/plans/2026-06-19-phase-b-ingestion-quality.md`](superpowers/plans/2026-06-19-phase-b-ingestion-quality.md)
 - 本地启动和检查命令：[`../README.md`](../README.md)
 
@@ -20,7 +22,8 @@
 
 - **工作树：** `D:\Sven\maths\.worktrees\real-question-baseline`
 - **分支：** `feat/real-question-baseline`
-- **当前提交：** `1390a9a`
+- **任务 2 实现基线：** `1390a9a`
+- **分支最新提交：** 运行 `git rev-parse --short HEAD` 获取；交接时以 Git 输出为准，不把文档提交号当作代码基线。
 - **执行计划：** [`superpowers/plans/2026-06-27-real-question-acceptance-baseline.md`](superpowers/plans/2026-06-27-real-question-acceptance-baseline.md)
 - **运行状态：** 前后端服务均已停止，`5173` 和 `8000` 端口未监听。
 - **本地数据：** 主目录数据库已复制到工作树，副本被 Git 忽略；后续验收不会修改主目录数据库。
