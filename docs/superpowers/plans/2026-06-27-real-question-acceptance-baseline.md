@@ -52,7 +52,8 @@
 |------|------|-------------|
 | 任务 1：固定案例清单 | 完成，规格与质量审查通过 | `ccd172f`、`61efeb6`；案例测试 11/11 |
 | 任务 2：统一评分门禁 | 实现完成、规格审查通过、质量审查 TDD 修复完成，待重新审查 | 实现基线 `1390a9a`；本次 TDD 修复提交见 `git log` 最新提交；评分测试 16/16；后端完整测试 31/31 |
-| 任务 3 至任务 10 | 未开始 | 等待任务 2 质量审查重新执行通过 |
+| 任务 3：锁定现有上传与确认契约 | 契约测试完成，规格与质量审查待用户复核 | 本次新增提交见 `git log` 最新提交；契约测试 3/3；后端完整测试 34/34 通过 |
+| 任务 4 至任务 10 | 未开始 | 等待任务 3 规格/质量审查重新执行通过 |
 
 任务 2 质量审查 TDD 修复明细：
 
@@ -62,6 +63,32 @@
 4. 修复后所有规格符合性审查与代码质量审查项均通过；无 P0/P1 剩余。
 
 在任务 2 质量审查重新执行通过前，不得开始任务 3。
+
+## 执行快照（2026-06-30 任务 3 上传契约测试）
+
+执行位置：
+
+- 工作树：`D:\Sven\maths\.worktrees\real-question-baseline`
+- 分支：`feat/real-question-baseline`
+- 分支最新提交：运行 `git rev-parse --short HEAD` 获取；文档不得代替 Git 输出。
+
+当前进度：
+
+| 任务 | 状态 | 提交 / 验证 |
+|------|------|-------------|
+| 任务 1：固定案例清单 | 完成，规格与质量审查通过 | `ccd172f`、`61efeb6`；案例测试 11/11 |
+| 任务 2：统一评分门禁 | 实现完成、规格审查通过、质量审查 TDD 修复完成、子代理代为执行用户视角审查建议通过 | 实现基线 `1390a9a`；本次 TDD 修复提交见 `git log` 最新提交；评分测试 16/16；后端完整测试 34/34 |
+| 任务 3：锁定现有上传与确认契约 | 契约测试完成，规格与质量审查待用户复核 | 本次新增提交见 `git log` 最新提交；契约测试 3/3；后端完整测试 34/34 通过 |
+| 任务 4 至任务 10 | 未开始 | 等待任务 3 规格/质量审查重新执行通过 |
+
+任务 3 上传契约测试明细：
+
+1. `test_multi_image_ocr_text_preserves_upload_order`：锁定多图 OCR 文本按上传顺序生成 `"--- 第 N 张 ---\n<part>"`，以 `\n\n` 拼接。
+2. `test_invalid_llm_json_keeps_raw_ocr_text`：锁定 LLM 返回非法 JSON 时回退到 OCR 原文，`confidence=40`，`needs_human_review=True`。
+3. `test_confirm_persists_reviewed_fields`：锁定确认入库持久化 9 个字段（text、raw_ocr_text、analysis_source、analysis_confidence、knowledge_points、knowmap_nodes、final_answer、review_status、needs_human_review）。
+4. 现行 `backend/routers/upload.py` 已满足契约；零生产代码改动；测试隔离良好（in-memory SQLite + StaticPool + mock 边界严格）。
+
+在任务 3 规格/质量审查重新执行通过前，不得开始任务 4。
 
 ---
 
