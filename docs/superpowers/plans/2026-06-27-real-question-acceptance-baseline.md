@@ -117,6 +117,42 @@
 
 在用户明确回复"继续"授权前，不得开始任务 5。
 
+## 执行快照（2026-07-04 任务 5 环境预检）
+
+执行位置：
+
+- 工作树：`D:\Sven\maths\.worktrees\real-question-baseline`
+- 分支：`feat/real-question-baseline`
+- 分支最新提交：运行 `git rev-parse --short HEAD` 获取；文档不得代替 Git 输出。
+
+当前进度：
+
+| 任务 | 状态 | 提交 / 验证 |
+|------|------|-------------|
+| 任务 1：固定案例清单 | 完成 | `ccd172f`、`61efeb6`；案例测试 11/11 |
+| 任务 2：统一评分门禁 | 完成，用户已认可 | `1390a9a` + `e3c7005`；评分测试 16/16；后端完整测试 34/34 |
+| 任务 3：锁定现有上传与确认契约 | 完成，用户已认可 | `f1164e0`；契约测试 3/3；生产代码零改动 |
+| 任务 4：建立验收报告骨架 | 完成 | `c90c61e` |
+| 任务 5：执行运行环境预检 | 完成 | 本次提交见 `git log`；`docs/quality/real-question-baseline-2026-06-27.md` 环境表更新，执行状态 `running` |
+| 任务 6 至任务 10 | 未开始 | 等待用户明确回复"继续"授权任务 6 |
+
+任务 5 实际观测：
+
+1. `Invoke-RestMethod http://127.0.0.1:8000/health` → `{"status":"ok","version":"0.1.0"}`
+2. `Invoke-RestMethod http://127.0.0.1:8000/api/v1/health/ocr` → `{"status":"ready","message":"OCR 就绪"}`
+3. 后端启动日志：`PaddleOCR initialized`、`Application startup complete`、加载模型 `PP-OCRv6_medium_rec`。
+4. 真实图 `POST /api/v1/questions/analyze -F "image=@RQ-01 第1张"` HTTP 200，但响应为 `source: manual_input`、`text: ""`、`raw_ocr_text: ""`、`confidence: 0`、`needs_human_review: true`；后端日志出现 `OCR inference error: (Unimplemented) ConvertPirAttribute2RuntimeAttribute not support [pir::ArrayAttribute<pir::DoubleAttribute>] (onednn_instruction.cc:118)`。
+5. 前端 Vite 6.4.3 dev 已在 `http://127.0.0.1:5173/` 运行；浏览器 Chrome 150.0.7871.47。
+6. 步骤 3（`/api/v1/settings/models/test`）未在本次触发，避免命令行暴露 API Key，任务 6 真实上传时会自然覆盖到文本模型链路。
+
+结论：
+
+- 环境层面 `/health`、`/api/v1/health/ocr`、前后端进程均已就绪；作为 `not_run → running` 转换的证据。
+- OCR 推理层已确认在真实印刷体图片上抛 `(Unimplemented) ConvertPirAttribute2RuntimeAttribute`，是 PaddleOCR 3.x 主入口 `predict` 与旧 `ocr` API 分叉、加上 OneDNN 后端算子不完整所致；本任务不修生产代码，作为跨题共同 P0 候选。
+- 由于 `analyze` 在真实图上稳定回退 `manual_input`，任务 6 起 RQ-01..RQ-05 的自动分析栏将以此为默认基线；人工校对承担从零填充的成本，对导学与诊断链路的下游验证不构成阻塞。
+
+在用户明确回复"继续"授权前，不得开始任务 6。
+
 ---
 
 ## 执行边界
@@ -897,7 +933,7 @@ git commit -m "docs(验收): 建立真实题基线报告骨架"
 
 - 修改：`docs/quality/real-question-baseline-2026-06-27.md`
 
-- [ ] **步骤 1：启动后端**
+- [x] **步骤 1：启动后端**
 
 在独立终端运行：
 
@@ -908,7 +944,7 @@ python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
 
 等待日志出现 `Startup complete`。PaddleOCR 首次初始化可能需要 30 至 120 秒。
 
-- [ ] **步骤 2：验证后端和 OCR**
+- [x] **步骤 2：验证后端和 OCR**
 
 运行：
 
@@ -941,7 +977,7 @@ Invoke-RestMethod http://127.0.0.1:8000/api/v1/health/ocr
 
 若连接失败，将错误记录为环境问题；OCR 原始识别仍继续执行，AI 结构化和自动解答标记为阻断。
 
-- [ ] **步骤 4：启动前端**
+- [x] **步骤 4：启动前端**
 
 在独立终端运行：
 
@@ -952,11 +988,11 @@ npm run dev
 
 打开 `http://127.0.0.1:5173/`。
 
-- [ ] **步骤 5：填写总览环境表**
+- [x] **步骤 5：填写总览环境表**
 
 将 OCR 实际状态、模型测试结果、浏览器版本和 Git 当前提交写入总览文档，并把总览状态从 `not_run` 改为 `running`。
 
-- [ ] **步骤 6：提交环境预检结果**
+- [x] **步骤 6：提交环境预检结果**
 
 ```powershell
 git add docs/quality/real-question-baseline-2026-06-27.md

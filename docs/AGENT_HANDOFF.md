@@ -2,8 +2,8 @@
 
 > 适用工作树：`D:\Sven\maths\.worktrees\real-question-baseline`
 > 适用分支：`feat/real-question-baseline`
-> 当前允许任务：任务 5，执行 RQ-01 的自动分析与人工校对（等待用户明确回复"继续"授权）
-> 下一任务：任务 6，未经用户明确回复"继续"禁止开始
+> 当前允许任务：任务 6，执行 RQ-01 的自动分析与人工校对（等待用户明确回复"继续"授权）
+> 下一任务：任务 7，未经用户明确回复"继续"禁止开始
 
 ## 项目价值
 
@@ -46,24 +46,25 @@ MVP 主闭环：
 - 任务 1 已完成并通过规格、质量审查：`ccd172f`、`61efeb6`。
 - 任务 2 已完成，用户已认可：实现 `1390a9a`，TDD 修复 `e3c7005`；评分测试 16/16、后端完整测试 34/34 通过。
 - 任务 3 已完成，用户已认可：契约测试 `f1164e0`；契约测试 3/3、后端完整测试 34/34 通过；生产代码零改动。
-- 任务 4 已完成：验收报告骨架 `docs/quality/real-question-baseline-2026-06-27.md` 与 `docs/quality/cases/RQ-01..RQ-05.md` 已建立，全部状态 `not_run`。
+- 任务 4 已完成：验收报告骨架 `c90c61e`；`docs/quality/real-question-baseline-2026-06-27.md` 与 `docs/quality/cases/RQ-01..RQ-05.md` 已建立。
+- 任务 5 已完成：环境预检提交见 `git log`；`/health` ok、`/api/v1/health/ocr` ready；但 PaddleOCR 3.7 `ocr()` 真实图推理抛 `(Unimplemented) ConvertPirAttribute2RuntimeAttribute`，`/api/v1/questions/analyze` 回退到 `source: manual_input`；作为跨题共同 P0 候选，定级留给任务 9。
 - 当前分支最新提交必须通过 `git rev-parse --short HEAD` 获取，不得把上述历史证据误认为当前 `HEAD`。
 
-任务 5 至任务 10 均未开始。
+任务 6 至任务 10 均未开始。
 
 ## 当前只允许解决的问题
 
-任务 4 已完成（本次提交，见 `git log`）：仅新增 `docs/quality/real-question-baseline-2026-06-27.md` 与 `docs/quality/cases/RQ-01..RQ-05.md` 报告骨架，全部字段为 `not_run` 占位。零代码改动。
+任务 5 已完成（本次提交，见 `git log`）：仅修改 `docs/quality/real-question-baseline-2026-06-27.md`（环境表、`执行状态: running`、共因段增加候选 P0 说明），并在实施计划的任务 5 段勾选步骤 1/2/4/5/6。步骤 3（文本模型 `/api/v1/settings/models/test`）在设置页手动点击"测试连接"以避免暴露 API Key，不在本次提交中触发；任务 6 会在真实上传流程里自然验证。零代码改动。
 
-任务 5（RQ-01 执行）尚未授权。执行任务 5 时只允许：
+任务 6（RQ-01 执行）尚未授权。执行任务 6 时只允许：
 
-1. 启动前后端服务，用 5173/8000 端口跑真实入库和导学，不得改动生产代码。
-2. 按 `data/acceptance/real-question-cases.json` 的 RQ-01 图片顺序上传，记录自动分析原始输出。
-3. 记录人工校对差异，覆盖正确/错误/提示/连续错误/完成 5 个导学分支。
-4. 按评分矩阵填 `docs/quality/cases/RQ-01.md` 与总览表，记录 `question_id` / `session_id`。
-5. 只覆盖 RQ-01，不得同时推进 RQ-02..RQ-05。
+1. 按 `data/acceptance/real-question-cases.json` 中 RQ-01 的 3 张图片顺序，通过前端入库页一次性上传。
+2. 记录 `/api/v1/questions/analyze` 的原始返回（`source`、`confidence`、`raw_ocr_text` 前 200 字符、`text`、`question_type`、`knowledge_points`、`key_insight`）。
+3. 记录人工校对差异（字段级 before/after），并在 `docs/quality/cases/RQ-01.md` 的评分表按 0/1/2 打分。
+4. 覆盖导学 5 个分支（正确/错误/提示/连续错误/完成）；记录 `question_id`、`session_id`、诊断摘要。
+5. 只覆盖 RQ-01，不得同时推进 RQ-02..RQ-05；不得改动生产代码。
 
-未经用户明确回复"继续"，不得开始任务 5。
+未经用户明确回复"继续"，不得开始任务 6。
 
 ## 单任务执行协议
 
