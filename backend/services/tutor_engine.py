@@ -182,9 +182,15 @@ def process_message(
             }
 
 def _check_answer(user_answer: str, expected: str) -> bool:
-    """Simple keyword-based answer checking for Mock mode."""
+    """Simple keyword-based answer checking for Mock mode.
+
+    When ``expected`` is empty we deliberately return ``False``: an empty
+    reference answer must not silently mark any student input as correct
+    (P0-TUTOR-01). The 3-attempt stuck flow still hands the step over with
+    the teaching explanation.
+    """
     if not expected:
-        return True
+        return False
     expected_keywords = expected.replace("？", "").replace("?", "").split()
     return any(kw in user_answer for kw in expected_keywords)
 
@@ -205,11 +211,38 @@ def _advance(session, steps, messages, teaching_steps, next_step, hints_remainin
     }
 
 def _complete(session, steps, messages, hints_remaining, teaching_steps):
-    """Complete the tutoring session."""
+    """Complete the tutoring session.
+
+    Mastery accounting (P0-TUTOR-03): a session that finished because the
+    student was walked through every step but got nothing right must not
+    report ``mastery_achieved`` nor award the full ``+0.3`` mastery delta.
+    Both are derived from the ratio of correctly answered steps.
+    """
     total = len(teaching_steps)
+    completed = sum(1 for s in steps if s.get("status") == "correct")
+    ratio = (completed / total) if total else 0.0
+
+    if total > 0 and completed == total:
+        mastery_achieved = True
+        mastery_update = 0.3
+        reply = "很好！你已经完成了这道题的学习。需要做一道类似的题巩固一下吗？"
+    elif ratio >= 0.6:
+        mastery_achieved = False
+        mastery_update = 0.1
+        reply = (
+            f"这道题走完了，答对 {completed}/{total} 步，还没完全掌握。"
+            "先回看卡住的步骤，我们下次再练一遍。"
+        )
+    else:
+        mastery_achieved = False
+        mastery_update = 0.0
+        reply = (
+            f"这道题走完了，答对 {completed}/{total} 步。"
+            "先别急着做变式，回到卡住的步骤把讲解看懂再来。"
+        )
+
     session.status = "completed"
-    session.mastery_achieved = True
-    reply = "很好！你已经完成了这道题的学习。需要做一道类似的题巩固一下吗？"
+    session.mastery_achieved = mastery_achieved
     messages.append({"role": "system", "content": reply})
     session.messages_json = json.dumps(messages)
     mistakes = json.loads(session.mistakes_json) if isinstance(session.mistakes_json, str) else (session.mistakes_json or [])
@@ -224,9 +257,9 @@ def _complete(session, steps, messages, hints_remaining, teaching_steps):
         "type": "complete", "reply": reply,
         "step_index": total, "total_steps": total,
         "hints_remaining": hints_remaining,
-        "mastery_update": 0.3,
-        "variant_suggested": "需要生成变式题吗？",
-        "feynman_available": True,
+        "mastery_update": mastery_update,
+        "variant_suggested": "需要生成变式题吗？" if mastery_achieved else None,
+        "feynman_available": mastery_achieved,
         "reviews_scheduled": True,
         "diagnostic_summary": diagnostic
     }
