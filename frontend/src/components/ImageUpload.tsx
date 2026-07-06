@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { analyzeQuestion, confirmQuestion, getKnowMapTree, type AnalysisResult } from "../services/api";
-import { filterKnowMapNodes, formatNodePath } from "./knowmapPicker.js";
+import { browseChildren, browseTopLevelBooks, filterKnowMapNodes, formatNodePath } from "./knowmapPicker.js";
 
 interface Props {
   grade?: string;
@@ -35,6 +35,7 @@ export default function ImageUpload({ grade = "高中", onConfirm }: Props) {
   const [result, setResult] = useState<ReviewDraft | null>(null);
   const [knowmapNodes, setKnowmapNodes] = useState<KnowMapNode[]>([]);
   const [nodeQuery, setNodeQuery] = useState("");
+  const [browseParentId, setBrowseParentId] = useState<string | null>(null);
 
   useEffect(() => {
     getKnowMapTree(grade).then(d => {
@@ -127,6 +128,7 @@ export default function ImageUpload({ grade = "高中", onConfirm }: Props) {
     if (current.includes(selectedNodeId)) return;
     updateResult({ knowmap_nodes: [...current, selectedNodeId] });
     setNodeQuery("");
+    setBrowseParentId(null);
   };
   const removeNode = (id: string) => {
     if (!result) return;
@@ -247,7 +249,40 @@ export default function ImageUpload({ grade = "高中", onConfirm }: Props) {
                     </button>
                   ))}
                   {nodeMatches.length === 0 && (
-                    <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>没有匹配的图谱节点</p>
+                    <div style={{ display: "grid", gap: 6 }}>
+                      <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 4px" }}>
+                        {nodeQuery.trim() ? `未匹配到"${nodeQuery.trim()}"，按教材浏览：` : "按教材浏览："}
+                      </p>
+                      {browseParentId && (
+                        <button type="button" onClick={() => {
+                          const current = knowmapNodes.find(n => n.id === browseParentId);
+                          setBrowseParentId(current?.parent_id ?? null);
+                        }} style={{ fontSize: 12, textAlign: "left", padding: "6px 10px", border: "1px dashed var(--border)", borderRadius: "var(--radius-sm)", background: "transparent", color: "var(--text-muted)", cursor: "pointer" }}>
+                          ← 返回上一级
+                        </button>
+                      )}
+                      {(browseParentId
+                        ? browseChildren(knowmapNodes, browseParentId, result?.knowmap_nodes || [])
+                        : browseTopLevelBooks(knowmapNodes, result?.knowmap_nodes || [])
+                      ).map(n => {
+                        const hasChildren = knowmapNodes.some(c => c.parent_id === n.id);
+                        return (
+                          <div key={n.id} style={{ display: "flex", gap: 6 }}>
+                            <button type="button" onClick={() => addNode(n.id)}
+                              style={{ flex: 1, textAlign: "left", padding: "8px 10px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", background: "var(--card)", color: "var(--text)", cursor: "pointer", fontSize: 12, lineHeight: 1.4 }}>
+                              <span style={{ color: "var(--brand)", fontWeight: 600, marginRight: 6 }}>选此</span>
+                              {n.name}
+                            </button>
+                            {hasChildren && (
+                              <button type="button" onClick={() => setBrowseParentId(n.id)}
+                                style={{ padding: "8px 10px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", background: "transparent", color: "var(--text-muted)", cursor: "pointer", fontSize: 12 }}>
+                                展开 →
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
               </div>

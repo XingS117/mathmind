@@ -21,3 +21,14 @@ export function findBestWeakPointNode(
   nodes: KnowMapPickerNode[],
   weakPoint: string,
 ): KnowMapPickerNode | undefined;
+
+export declare function browseTopLevelBooks<T extends { id: string; level: number }>(
+  nodes: T[],
+  selectedIds?: string[]
+): T[];
+
+export declare function browseChildren<T extends { id: string; parent_id?: string | null }>(
+  nodes: T[],
+  parentId: string,
+  selectedIds?: string[]
+): T[];

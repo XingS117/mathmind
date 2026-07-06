@@ -39,3 +39,33 @@ test("finds the best graph node for a weak point keyword", () => {
   assert.equal(findBestWeakPointNode(nodes, "二次函数")?.id, "bx2_c3");
   assert.equal(findBestWeakPointNode(nodes, "不存在")?.id, undefined);
 });
+
+import { browseChildren, browseTopLevelBooks } from "./knowmapPicker.js";
+
+const bookNodes = [
+  { id: "bx1", name: "必修一", level: 1, parent_id: null },
+  { id: "bx2", name: "必修二", level: 1, parent_id: null },
+  { id: "cz_bs1", name: "八年级上册", level: 1, parent_id: null },
+  { id: "bx1_c1", name: "第1章", level: 2, parent_id: "bx1" },
+  { id: "bx1_c1_s1", name: "1.1", level: 3, parent_id: "bx1_c1" },
+];
+
+test("browseTopLevelBooks returns level 1 books excluding selected", () => {
+  const result = browseTopLevelBooks(bookNodes, ["bx2"]);
+  assert.deepEqual(result.map(n => n.id), ["bx1", "cz_bs1"]);
+});
+
+test("browseTopLevelBooks with empty selection returns all books", () => {
+  const result = browseTopLevelBooks(bookNodes);
+  assert.equal(result.length, 3);
+});
+
+test("browseChildren returns direct children by parent id", () => {
+  const result = browseChildren(bookNodes, "bx1");
+  assert.deepEqual(result.map(n => n.id), ["bx1_c1"]);
+});
+
+test("browseChildren excludes already-selected ids", () => {
+  const result = browseChildren(bookNodes, "bx1_c1", ["bx1_c1_s1"]);
+  assert.deepEqual(result, []);
+});

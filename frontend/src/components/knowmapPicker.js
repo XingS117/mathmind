@@ -34,3 +34,15 @@ export function findBestWeakPointNode(nodes, weakPoint) {
     .filter(node => buildNodeSearchText(node, nodes).includes(keyword))
     .sort((a, b) => b.level - a.level || a.id.localeCompare(b.id))[0];
 }
+
+export function browseTopLevelBooks(nodes, selectedIds = []) {
+  const selected = new Set(selectedIds);
+  return nodes
+    .filter(node => node.level === 1 && !selected.has(node.id));
+}
+
+export function browseChildren(nodes, parentId, selectedIds = []) {
+  const selected = new Set(selectedIds);
+  return nodes
+    .filter(node => node.parent_id === parentId && !selected.has(node.id));
+}
