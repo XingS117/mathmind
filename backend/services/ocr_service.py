@@ -44,7 +44,8 @@ def _try_construct(paddle_ocr_cls, **kwargs):
         return None, exc
 
 
-def init_ocr_background():
+def _do_init():
+    """Actually construct PaddleOCR. May take 30-120s on first cold start."""
     global _ocr, _ocr_status, _ocr_error, _mock_mode
     try:
         from paddleocr import PaddleOCR
@@ -78,9 +79,23 @@ def init_ocr_background():
     except Exception as e:  # noqa: BLE001
         _ocr = None
         _mock_mode = True
-        _ocr_status = "ready"
+        _ocr_status = "failed"
         _ocr_error = str(e)
         logger.warning(f"PaddleOCR unavailable, using mock mode: {e}")
+
+
+def init_ocr_background():
+    """Kick off OCR initialisation on a daemon thread so app startup does
+    not block for 1-2 minutes waiting on PaddleOCR model loading. Health
+    endpoint reports ``initializing`` until ``_do_init`` finishes.
+    """
+    global _ocr_status
+    with _ocr_lock:
+        if _ocr_status in ("initializing", "ready"):
+            return
+        _ocr_status = "initializing"
+    thread = threading.Thread(target=_do_init, name="paddleocr-init", daemon=True)
+    thread.start()
 
 
 def get_ocr():
