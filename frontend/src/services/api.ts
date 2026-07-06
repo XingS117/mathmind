@@ -50,11 +50,20 @@ export async function getNodeQuestions(nodeId: string, grade?: string) {
   return r.json();
 }
 
-export async function analyzeQuestion(files: File[]) {
+export async function analyzeQuestion(files: File[], signal?: AbortSignal) {
   const fd = new FormData();
   files.forEach(f => fd.append("image", f));
-  const r = await fetch(`${BASE}/questions/analyze`, { method: "POST", body: fd });
+  const r = await fetch(`${BASE}/questions/analyze`, { method: "POST", body: fd, signal });
+  if (!r.ok) {
+    throw new Error(`analyze HTTP ${r.status}`);
+  }
   return r.json() as Promise<AnalysisResult>;
+}
+
+export async function getOcrHealth(signal?: AbortSignal): Promise<{ status: string; message: string }> {
+  const r = await fetch(`${BASE}/health/ocr`, { signal });
+  if (!r.ok) throw new Error(`ocr health ${r.status}`);
+  return r.json();
 }
 
 export async function confirmQuestion(payload: ConfirmPayload) {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { analyzeQuestion, confirmQuestion, getKnowMapTree, type AnalysisResult } from "../services/api";
+import { analyzeQuestion, confirmQuestion, getKnowMapTree, getOcrHealth, type AnalysisResult } from "../services/api";
 import { browseChildren, browseTopLevelBooks, filterKnowMapNodes, formatNodePath } from "./knowmapPicker.js";
 
 interface Props {
@@ -31,6 +31,9 @@ export default function ImageUpload({ grade = "高中", onConfirm }: Props) {
   const [previews, setPreviews] = useState<string[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [elapsed, setElapsed] = useState(0); // seconds
+  const [ocrHealth, setOcrHealth] = useState<string>("");
+  const abortRef = useRef<AbortController | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [result, setResult] = useState<ReviewDraft | null>(null);
   const [knowmapNodes, setKnowmapNodes] = useState<KnowMapNode[]>([]);
@@ -76,9 +79,21 @@ export default function ImageUpload({ grade = "高中", onConfirm }: Props) {
   const analyze = async () => {
     if (files.length === 0) return;
     setAnalyzing(true);
+    setElapsed(0);
+    setOcrHealth("");
     setResult(null);
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+    // 硬上限 6 分钟 (单张 60-90s * 最多 4 张 + LLM)
+    const hardTimeout = window.setTimeout(() => controller.abort(), 360_000);
+    const tick = window.setInterval(() => setElapsed(s => s + 1), 1000);
+    const healthPoll = window.setInterval(() => {
+      getOcrHealth().then(h => setOcrHealth(h.status)).catch(() => {});
+    }, 5000);
+
     try {
-      const d = await analyzeQuestion(files);
+      const d = await analyzeQuestion(files, controller.signal);
       setResult({
         ...d,
         key_insight: d.key_insight || "",
@@ -86,11 +101,32 @@ export default function ImageUpload({ grade = "高中", onConfirm }: Props) {
         solution_text: "",
         knowmap_nodes: [],
       });
-    } catch {
-      setResult({ success: false, error: "网络错误", suggestion: "请检查网络连接后重试" });
+    } catch (err: unknown) {
+      const aborted = err instanceof DOMException && err.name === "AbortError";
+      setResult({
+        success: false,
+        error: aborted ? "识别超时(超过 6 分钟)" : "网络错误",
+        suggestion: aborted
+          ? "OCR 未能在预期时间内完成,请减少图片数量后重试,或先手动录入题干"
+          : "请检查后端是否运行 (http://127.0.0.1:8000),或改为手动录入",
+      });
     } finally {
+      window.clearTimeout(hardTimeout);
+      window.clearInterval(tick);
+      window.clearInterval(healthPoll);
+      abortRef.current = null;
       setAnalyzing(false);
     }
+  };
+
+  const cancelAnalyze = () => {
+    abortRef.current?.abort();
+  };
+
+  const formatElapsed = (sec: number) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
   const confirm = async () => {
@@ -177,11 +213,35 @@ export default function ImageUpload({ grade = "高中", onConfirm }: Props) {
         </button>
       )}
 
-      {analyzing && (
-        <div style={{ marginTop: 12, textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
-          正在识别并分析题目...
-        </div>
-      )}
+      {analyzing && (() => {
+        const perImage = 75; // seconds per image (empirically 60-90s)
+        const budget = files.length * perImage + 10;
+        const pct = Math.min(99, Math.floor((elapsed / budget) * 100));
+        const remain = Math.max(0, budget - elapsed);
+        const ocrLabel =
+          ocrHealth === "ready" ? "OCR 就绪"
+          : ocrHealth === "initializing" ? "OCR 正在启动"
+          : ocrHealth === "failed" ? "OCR 启动失败,将走 Mock"
+          : "OCR 状态检测中";
+        return (
+          <div style={{ marginTop: 12, padding: 14, border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", background: "var(--card)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 8, color: "var(--text)" }}>
+              <span>正在识别 {files.length} 张图片...</span>
+              <span style={{ fontVariantNumeric: "tabular-nums" }}>{formatElapsed(elapsed)} / 约 {formatElapsed(budget)}</span>
+            </div>
+            <div style={{ height: 6, borderRadius: 3, background: "var(--border)", overflow: "hidden", marginBottom: 8 }}>
+              <div style={{ width: `${pct}%`, height: "100%", background: "var(--brand)", transition: "width 0.6s linear" }} />
+            </div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
+              {ocrLabel} · 预计还需 {formatElapsed(remain)} · 请勿关闭页面
+            </div>
+            <button type="button" onClick={cancelAnalyze}
+              style={{ fontSize: 12, padding: "6px 12px", background: "transparent", color: "var(--text-muted)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", cursor: "pointer" }}>
+              取消识别
+            </button>
+          </div>
+        );
+      })()}
 
       {result && !analyzing && (
         <div style={{ marginTop: 12, padding: 16, borderRadius: "var(--radius)", border: "1px solid var(--border)", background: "var(--card)" }}>
