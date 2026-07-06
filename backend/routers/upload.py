@@ -118,8 +118,9 @@ async def analyze_question(images: List[UploadFile] = File(alias="image"), reque
         part = ""
         try:
             part = await ocr_image(img_bytes)
-            logger.info("OCR result: " + ("empty" if not part else part[:60] + "..."))
-        except Exception:
+            logger.info(f"OCR result[{idx}]: " + ("empty" if not part else part[:60] + "..."))
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(f"OCR failed[{idx}]: {exc}")
             part = ""
 
         if not part and llm_config:

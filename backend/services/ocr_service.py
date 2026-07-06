@@ -13,6 +13,7 @@ Strategy:
    structure never crashes the request handler.
 """
 
+import asyncio
 import logging
 import os
 import tempfile
@@ -166,7 +167,22 @@ def _run_inference(ocr, image_path: str):
     return ocr.ocr(image_path)
 
 
-async def ocr_image(image_bytes: bytes) -> str:
+_infer_lock = threading.Lock()
+
+
+def _sync_ocr_image(image_bytes: bytes) -> str:
+    """Blocking OCR call. Runs the actual PaddleOCR ``predict``.
+
+    Kept synchronous on purpose so the async wrapper can offload it to
+    a worker thread via ``asyncio.to_thread`` and avoid blocking the
+    FastAPI event loop for the whole 20-30s per image (P0-OCR-02).
+
+    A process-wide lock ensures at most one thread calls ``predict()``
+    at a time. PaddleOCR 3.x holds a single Paddle inference context that
+    is not safe to enter from multiple threads concurrently; without the
+    lock 4 parallel requests deadlock all worker threads (observed:
+    47 threads all Waiting, 0 rows of OCR output after 5 minutes).
+    """
     ocr = get_ocr()
     if ocr is None or _mock_mode:
         raise RuntimeError("OCR_UNAVAILABLE")
@@ -174,7 +190,8 @@ async def ocr_image(image_bytes: bytes) -> str:
     tmp.write(image_bytes)
     tmp.close()
     try:
-        result = _run_inference(ocr, tmp.name)
+        with _infer_lock:
+            result = _run_inference(ocr, tmp.name)
         texts = _extract_texts(result)
         return "\n".join(texts)
     except Exception as e:  # noqa: BLE001
@@ -185,3 +202,8 @@ async def ocr_image(image_bytes: bytes) -> str:
             os.unlink(tmp.name)
         except OSError:
             pass
+
+
+async def ocr_image(image_bytes: bytes) -> str:
+    """Async facade that runs the blocking OCR call in a worker thread."""
+    return await asyncio.to_thread(_sync_ocr_image, image_bytes)
