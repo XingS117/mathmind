@@ -46,10 +46,43 @@ def _infer_weak_spots(mistakes: list[str], stuck_steps: list[int], teaching_step
         spots.append("思路启动")
     for step_no in stuck_steps:
         idx = step_no - 1
-        question = teaching_steps[idx].get("guiding_question", "") if idx < len(teaching_steps) else ""
-        if question and question not in spots:
-            spots.append(question)
+        if idx >= len(teaching_steps):
+            continue
+        step = teaching_steps[idx]
+        # Prefer short knowledge-point-like labels; the raw
+        # ``guiding_question`` is a full sentence that the dashboard
+        # cannot map to a knowmap node (P1-DASHBOARD-01).
+        candidate = _stuck_step_label(step, step_no)
+        if candidate and candidate not in spots:
+            spots.append(candidate)
     return spots[:3] or ["本题关键步骤"]
+
+
+_MAX_WEAK_SPOT_CHARS = 18
+
+
+def _stuck_step_label(step: dict, step_no: int) -> str:
+    """Pick a short, node-searchable label for a stuck step.
+
+    Order of preference:
+    1. explicit ``knowledge_point`` on the step, if present;
+    2. the first title-like field (``title``/``topic``);
+    3. the ``guiding_question`` truncated to a searchable snippet;
+    4. a generic fallback keyed by step number.
+    """
+    for key in ("knowledge_point", "topic", "title"):
+        val = str(step.get(key) or "").strip()
+        if val:
+            return val[:_MAX_WEAK_SPOT_CHARS]
+    q = str(step.get("guiding_question") or "").strip()
+    if q:
+        # Cut at first punctuation so the label reads like a phrase,
+        # not a whole prompt sentence.
+        for i, ch in enumerate(q[:_MAX_WEAK_SPOT_CHARS]):
+            if ch in "。？！?!，,；;：:":
+                return q[:i]
+        return q[:_MAX_WEAK_SPOT_CHARS]
+    return f"第{step_no}步关键点"
 
 def _next_action(stuck_steps: list[int], weak_spots: list[str], teaching_steps: list[dict]) -> str:
     if stuck_steps:

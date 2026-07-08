@@ -40,6 +40,20 @@ test("finds the best graph node for a weak point keyword", () => {
   assert.equal(findBestWeakPointNode(nodes, "不存在")?.id, undefined);
 });
 
+test("findBestWeakPointNode falls back to token match for long weak points", () => {
+  const longLabel = "利用二次函数的图像与坐标轴的交点关系";
+  const hit = findBestWeakPointNode(nodes, longLabel);
+  assert.ok(hit, "expected some node for long weak point");
+  assert.match(hit.name, /二次函数|函数/);
+});
+
+test("findBestWeakPointNode returns undefined for unrelated long labels", () => {
+  // Long label that shares no 2+ char token with any node text.
+  const label = "物理力学中的斜面加速度问题";
+  const hit = findBestWeakPointNode(nodes, label);
+  assert.equal(hit, undefined);
+});
+
 import { browseChildren, browseTopLevelBooks } from "./knowmapPicker.js";
 
 const bookNodes = [
