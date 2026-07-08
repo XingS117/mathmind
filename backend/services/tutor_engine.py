@@ -161,7 +161,7 @@ def process_message(
     else:
         step_state["attempts"] += 1
         if step_state["attempts"] >= 3:
-            reply = step_data.get("stuck_response", "我们一起来做：") + step_data.get("expected_answer", "")
+            reply = _stuck_reply(step_data)
             return _advance(session, steps, messages, teaching_steps, current + 1, hints_remaining, reply)
         else:
             reply = random.choice(ENCOURAGE_WRONG) + " " + step_data.get("wrong_response", "再想想？")
@@ -235,6 +235,28 @@ def _truncate_hint(text: str) -> str:
         if ch in "。！？!?；;\n":
             return text[: i + 1]
     return text[:_MAX_HINT_CHARS].rstrip() + "…"
+
+
+def _stuck_reply(step_data: dict) -> str:
+    """Compose the 3-attempts walk-through reply without duplicating the
+    expected answer (P1-TUTOR-04).
+
+    ``upload.py`` populates ``stuck_response`` with the step ``result``,
+    which is the same string as ``expected_answer``. The old code just
+    concatenated the two, producing outputs like ``AB=10, AE=12AB=10,
+    AE=12``. We now emit a single copy: prefer a non-empty
+    ``stuck_response`` alone, otherwise fall back to a lead-in phrase
+    plus ``expected_answer``.
+    """
+    stuck = str(step_data.get("stuck_response") or "").strip()
+    expected = str(step_data.get("expected_answer") or "").strip()
+    if stuck and expected and stuck != expected and expected not in stuck:
+        return f"{stuck}{expected}"
+    if stuck:
+        return stuck
+    if expected:
+        return f"我们一起来做：{expected}"
+    return "我们一起来做这一步。"
 
 def _advance(session, steps, messages, teaching_steps, next_step, hints_remaining, reply_override=None):
     """Advance to the next step."""
