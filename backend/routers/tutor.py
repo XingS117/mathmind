@@ -49,10 +49,15 @@ def create_session(req: TutorSessionCreate, request: Request, db: DBSession = De
         try: diagram_json = json.loads(question.diagram_json) if isinstance(question.diagram_json, str) else question.diagram_json
         except: pass
 
+    solution_confidence = str(teaching.get("solution_confidence") or "unknown") if teaching else "unknown"
+    uncertain_points = list(teaching.get("uncertain_points") or []) if teaching else []
+
     return TutorSessionResponse(
         session_id=session_id, question_text=question.text or "",
         opening=opening, total_steps=len(steps), hints_available=3,
-        has_diagram=bool(question.has_diagram), diagram_json=diagram_json
+        has_diagram=bool(question.has_diagram), diagram_json=diagram_json,
+        solution_confidence=solution_confidence,
+        uncertain_points=uncertain_points,
     )
 
 @router.post("/tutor/message", response_model=TutorMessageResponse)

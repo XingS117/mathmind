@@ -2,8 +2,8 @@
 
 > 适用工作树：`D:\Sven\maths\.worktrees\real-question-baseline`
 > 适用分支：`feat/real-question-baseline`
-> 当前允许任务：任务 6，执行 RQ-01 的自动分析与人工校对（等待用户明确回复"继续"授权）
-> 下一任务：任务 7，未经用户明确回复"继续"禁止开始
+> 当前允许任务：任务 7，执行 RQ-03 与 RQ-04（等待用户明确回复"继续"授权）
+> 下一任务：任务 8，未经用户明确回复"继续"禁止开始
 
 ## 项目价值
 
@@ -43,28 +43,29 @@ MVP 主闭环：
 
 ## 当前断点
 
-- 任务 1 已完成并通过规格、质量审查：`ccd172f`、`61efeb6`。
-- 任务 2 已完成，用户已认可：实现 `1390a9a`，TDD 修复 `e3c7005`；评分测试 16/16、后端完整测试 34/34 通过。
-- 任务 3 已完成，用户已认可：契约测试 `f1164e0`；契约测试 3/3、后端完整测试 34/34 通过；生产代码零改动。
-- 任务 4 已完成：验收报告骨架 `c90c61e`；`docs/quality/real-question-baseline-2026-06-27.md` 与 `docs/quality/cases/RQ-01..RQ-05.md` 已建立。
-- 任务 5 已完成：环境预检提交见 `git log`；`/health` ok、`/api/v1/health/ocr` ready；但 PaddleOCR 3.7 `ocr()` 真实图推理抛 `(Unimplemented) ConvertPirAttribute2RuntimeAttribute`，`/api/v1/questions/analyze` 回退到 `source: manual_input`；作为跨题共同 P0 候选，定级留给任务 9。
+- 任务 1..4 已完成并通过审查（见 PROJECT_STATUS）。
+- 任务 5 已完成：环境预检提交 `60df039`；`/health` ok、`/api/v1/health/ocr` ready；PaddleOCR 3.7 `ocr()` 真实图推理抛 `(Unimplemented) ConvertPirAttribute2RuntimeAttribute`。
+- 任务 6 已完成：RQ-01（`q_04f7fdacb8fc` / `s_35baaff4ebff` / 10 步）与 RQ-02（`q_a81566475c0f` / `s_afe97ec72ce2` / 9 步）全链路通过 API 直调完成。两题均在一路错答下被系统判 complete、`mastery_update=0.3`、`completed_steps=0`。
+- 已确认 5 条跨题 P0：`OCR-01`（PaddleOCR PIR/OneDNN 不兼容）、`TUTOR-01`（关键词匹配非数学等价）、`TUTOR-02`（越错越进）、`TUTOR-03`（无条件 mastery=True）、`CONTENT-01`（RQ-01 复现，LLM 数学结论错误）。
+- 4 条跨题 P1：`UI-01`（校对页图谱节点匹配失败）、`TUTOR-04`（stuck 文案重复拼接）、`HINT-01`（提示泄题）、`REVIEW-01`（默认用户看不到复习计划）。
+- 1 条 P2：`CONTENT-02`（LLM 分步答案未化简）。
 - 当前分支最新提交必须通过 `git rev-parse --short HEAD` 获取，不得把上述历史证据误认为当前 `HEAD`。
 
-任务 6 至任务 10 均未开始。
+任务 7 至任务 10 均未开始。
 
 ## 当前只允许解决的问题
 
-任务 5 已完成（本次提交，见 `git log`）：仅修改 `docs/quality/real-question-baseline-2026-06-27.md`（环境表、`执行状态: running`、共因段增加候选 P0 说明），并在实施计划的任务 5 段勾选步骤 1/2/4/5/6。步骤 3（文本模型 `/api/v1/settings/models/test`）在设置页手动点击"测试连接"以避免暴露 API Key，不在本次提交中触发；任务 6 会在真实上传流程里自然验证。零代码改动。
+任务 6 已完成（本次提交，见 `git log`）：`docs/quality/cases/RQ-01.md`、`RQ-02.md`、`docs/quality/real-question-baseline-2026-06-27.md` 已按真实证据填写；实施计划任务 6 六个复选框全部勾选；追加 2026-07-04 任务 6 执行快照。零代码改动。
 
-任务 6（RQ-01 执行）尚未授权。执行任务 6 时只允许：
+任务 7（RQ-03 + RQ-04）尚未授权。执行任务 7 时只允许：
 
-1. 按 `data/acceptance/real-question-cases.json` 中 RQ-01 的 3 张图片顺序，通过前端入库页一次性上传。
-2. 记录 `/api/v1/questions/analyze` 的原始返回（`source`、`confidence`、`raw_ocr_text` 前 200 字符、`text`、`question_type`、`knowledge_points`、`key_insight`）。
-3. 记录人工校对差异（字段级 before/after），并在 `docs/quality/cases/RQ-01.md` 的评分表按 0/1/2 打分。
-4. 覆盖导学 5 个分支（正确/错误/提示/连续错误/完成）；记录 `question_id`、`session_id`、诊断摘要。
-5. 只覆盖 RQ-01，不得同时推进 RQ-02..RQ-05；不得改动生产代码。
+1. 按 `data/acceptance/real-question-cases.json` 的 RQ-03、RQ-04 图片顺序调 `POST /api/v1/questions/analyze`（前端 UI-01 未修复前继续走 API 直调）。
+2. 用解构稿字段调 `POST /api/v1/questions/confirm` 完成入库；记录 `question_id`。
+3. 每题跑一次 tutor 5 分支：错答 → 提示 → 连续 2 次不知道 → 一路错答直到 complete；记录 `session_id`、`diagnostic_summary`。
+4. 按证据在 `docs/quality/cases/RQ-03.md`、`RQ-04.md` 打 0/1/2 分并记录 P0/P1/P2；对 `CONTENT-01` 是否复现给出结论。
+5. 只覆盖 RQ-03、RQ-04；不得同时推进 RQ-05；不得改动生产代码。
 
-未经用户明确回复"继续"，不得开始任务 6。
+未经用户明确回复"继续"，不得开始任务 7。
 
 ## 单任务执行协议
 

@@ -63,13 +63,43 @@ ANALYZE_PROMPT = """你是一名深耕初高中数学教学的教研员。
 {"valid": false, "error": "未识别到有效数学题目", "suggestion": "请确认图片清晰、包含完整的印刷体数学题"}
 """
 
-SOLVE_PROMPT = """解以下数学题，输出严格 JSON 格式：
+SOLVE_PROMPT = """你是初高中数学教研员，正在为学生做**逐步讲解**。
+
+严格按以下流程解题，然后输出 JSON：
+
+1. **复述条件**：把题目已知条件用一句话复述，标明求什么。若题干存在矛盾或
+   缺失关键条件，直接把 `confidence` 设为 `"low"` 并在 `uncertain_points`
+   中说明，不要强行编答案。
+2. **分步骤**：每步给出：
+   - `description`：这一步做什么（简短，不含答案）；
+   - `basis`：这一步用到的定理/公式/依据；
+   - `latex`：涉及的公式；
+   - `result`：这一步得到的中间结论。
+   步骤要覆盖从已知到最终答案的完整推理，最少 3 步。
+3. **给出 final_answer**：并用一句话说明"如何验证 final_answer 满足题干"。
+4. **自检**：把答案代回题干条件，检查是否全部满足。若发现矛盾，把
+   `confidence` 设为 `"low"` 并在 `uncertain_points` 中说明。
+
+要求：
+- 不允许在 `description` 里直接写出 `result`。
+- 不允许步骤间出现前后矛盾（例如第2步得到 x=1，第3步却使用 x=2）。
+- 化简所有能化简的表达式（例如 `\\sqrt{4k^2-4k+2}` 应写成 `\\sqrt{(2k-1)^2+1}`）。
+- **只输出 JSON**，不要有前后文字。
+
+输出格式：
+```json
 {
-  "steps": [{"step_number": 1, "description": "步骤说明", "latex": "公式", "result": "结果"}],
+  "steps": [
+    {"step_number": 1, "description": "…", "basis": "…", "latex": "…", "result": "…"}
+  ],
   "final_answer": "最终答案",
+  "verification": "把最终答案代回题干后，如何验证条件全部满足",
   "method": "解法名称",
-  "common_mistakes": ["常见错误1"]
+  "common_mistakes": ["常见错误1"],
+  "confidence": "high" | "medium" | "low",
+  "uncertain_points": ["若有把握不准之处列在这里"]
 }
+```
 """
 
 
@@ -77,6 +107,23 @@ def _analysis_response(**kwargs) -> dict:
     base = QuestionAnalysisResponse(success=True).model_dump()
     base.update(kwargs)
     return base
+
+
+def _strip_code_fence(text: str) -> str:
+    """Some LLMs wrap JSON output in ```json fences. Strip them so
+    ``json.loads`` doesn't fail on otherwise valid payloads.
+    """
+    if not text:
+        return text
+    t = text.strip()
+    if t.startswith("```"):
+        # Drop the opening fence line and the closing fence.
+        first_newline = t.find("\n")
+        if first_newline != -1:
+            t = t[first_newline + 1 :]
+        if t.endswith("```"):
+            t = t[: -3]
+    return t.strip()
 
 
 def _get_llm_config(uid: str) -> tuple[bool, dict | None]:
@@ -173,7 +220,7 @@ async def analyze_question(images: List[UploadFile] = File(alias="image"), reque
         )
 
     try:
-        data = json.loads(raw)
+        data = json.loads(_strip_code_fence(raw))
     except json.JSONDecodeError:
         return _analysis_response(
             source=source,
@@ -220,29 +267,45 @@ async def confirm_question(data: ConfirmRequest, request: Request = None, db: DB
     method = ""
     common_mistakes = []
     teachable = []
+    verification = ""
+    llm_confidence = "unknown"
+    uncertain_points: list[str] = []
 
     if llm_config and data.text:
-        raw = await call_llm_with_config(SOLVE_PROMPT + "\n\n" + data.text, llm_config)
+        raw = await call_llm_with_config(SOLVE_PROMPT + "\n\n题干：\n" + data.text, llm_config)
         if raw:
             try:
-                solve = json.loads(raw)
+                solve = json.loads(_strip_code_fence(raw))
                 steps = solve.get("steps", [])
                 final_answer = final_answer or solve.get("final_answer", "")
                 method = solve.get("method", "")
                 common_mistakes = solve.get("common_mistakes", [])
+                verification = solve.get("verification", "") or ""
+                llm_confidence = str(solve.get("confidence") or "unknown").lower()
+                uncertain_points = list(solve.get("uncertain_points") or [])
                 for s in steps:
+                    step_no = s.get("step_number", 1)
+                    description = str(s.get("description") or "").strip()
+                    basis = str(s.get("basis") or "").strip()
+                    result_val = str(s.get("result") or "").strip()
+                    guiding = description
+                    if basis and basis not in guiding:
+                        guiding = f"{description}（依据：{basis}）" if description else basis
                     teachable.append({
-                        "step_number": s.get("step_number", 1),
-                        "title": f"第{s.get('step_number', 1)}步",
-                        "guiding_question": s.get("description", ""),
-                        "expected_answer": s.get("result", ""),
+                        "step_number": step_no,
+                        "title": f"第{step_no}步",
+                        "guiding_question": guiding,
+                        "expected_answer": result_val,
                         "correct_response": "正确！继续。",
-                        "wrong_response": "再想想，提示：" + s.get("description", ""),
-                        "hint": s.get("description", ""),
-                        "stuck_response": s.get("result", ""),
+                        "wrong_response": "再想想。",
+                        "hint": description or basis or "回到已知条件想一想。",
+                        "stuck_response": result_val,
+                        "basis": basis,
                     })
             except Exception:
                 pass
+
+    needs_review_final = data.needs_human_review or llm_confidence == "low" or bool(uncertain_points)
 
     if not teachable and data.text:
         teachable.append({
@@ -279,14 +342,23 @@ async def confirm_question(data: ConfirmRequest, request: Request = None, db: DB
             "method": method,
             "common_mistakes": common_mistakes,
             "manual_solution": data.solution_text,
+            "verification": verification,
+            "confidence": llm_confidence,
+            "uncertain_points": uncertain_points,
         }),
         teaching_json=json.dumps({
             "teachable_steps": teachable,
             "prerequisites": [],
             "key_insight": data.key_insight,
+            "uncertain_points": uncertain_points,
+            "solution_confidence": llm_confidence,
         }),
         status="complete",
     )
+    # Preserve the LLM self-check flag by promoting it into
+    # ``needs_human_review`` so the frontend can prompt the user to
+    # spot-check questionable auto-solutions.
+    q.needs_human_review = needs_review_final
     db.add(q)
     db.commit()
     return {

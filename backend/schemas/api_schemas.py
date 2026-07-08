@@ -38,6 +38,8 @@ class TutorSessionResponse(BaseModel):
     hints_available: int
     has_diagram: bool = False
     diagram_json: Optional[dict] = None
+    solution_confidence: str = "unknown"
+    uncertain_points: list[str] = []
 
 class TutorMessageRequest(BaseModel):
     session_id: str

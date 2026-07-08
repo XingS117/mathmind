@@ -27,10 +27,24 @@ export default function TutorPage({ questionId, onSelectQuestion }: Props) {
     }
     createTutorSession(questionId).then((d) => {
       setSession(d);
-      setMessages([
+      const msgs: any[] = [
         { role: "system", content: d.question_text, isQuestion: true },
-        { role: "system", content: d.opening },
-      ]);
+      ];
+      if (
+        d.solution_confidence === "low" ||
+        (Array.isArray(d.uncertain_points) && d.uncertain_points.length > 0)
+      ) {
+        const detail = (d.uncertain_points || []).slice(0, 3).join("；");
+        msgs.push({
+          role: "system",
+          type: "warning",
+          content:
+            "⚠️ AI 自检提示：本题的解析置信度较低，请对照原答案核对后再学习。" +
+            (detail ? `\n关注点：${detail}` : ""),
+        });
+      }
+      msgs.push({ role: "system", content: d.opening });
+      setMessages(msgs);
       setStep({ current: 1, total: d.total_steps, hints: d.hints_available });
       setLoading(false);
       setTimeout(scroll, 100);

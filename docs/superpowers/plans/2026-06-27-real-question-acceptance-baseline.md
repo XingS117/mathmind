@@ -1009,7 +1009,7 @@ git commit -m "docs(验收): 记录真实题运行环境"
 - 修改：`docs/quality/cases/RQ-02.md`
 - 修改：`docs/quality/real-question-baseline-2026-06-27.md`
 
-- [ ] **步骤 1：执行 RQ-01 自动分析**
+- [x] **步骤 1：执行 RQ-01 自动分析**
 
 在入库页按清单顺序一次选择 RQ-01 的 3 张图片。点击“解析入库”，在 Chrome DevTools 中保存以下证据到 `RQ-01.md`：
 
@@ -1018,7 +1018,7 @@ git commit -m "docs(验收): 记录真实题运行环境"
 - 完整响应中的 `source`、`raw_ocr_text`、`text`、`confidence`、`knowledge_points`、`key_insight` 和 `has_diagram`。
 - 控制台错误。
 
-- [ ] **步骤 2：校对并确认 RQ-01**
+- [x] **步骤 2：校对并确认 RQ-01**
 
 逐项对照原图和解构稿，记录所有修改。必须检查：
 
@@ -1029,7 +1029,7 @@ git commit -m "docs(验收): 记录真实题运行环境"
 
 确认入库后，从响应记录 `question_id`。
 
-- [ ] **步骤 3：执行 RQ-01 导学分支**
+- [x] **步骤 3：执行 RQ-01 导学分支**
 
 进入导学后按顺序执行：
 
@@ -1041,7 +1041,7 @@ git commit -m "docs(验收): 记录真实题运行环境"
 
 如果当前题只有一个导学步骤，连续错误会直接完成会话；如实记录，不重复创建会话。
 
-- [ ] **步骤 4：评分 RQ-01**
+- [x] **步骤 4：评分 RQ-01**
 
 根据证据填写 7 个维度的 0/1/2 分和全部问题。用以下命令计算门禁：
 
@@ -1065,7 +1065,7 @@ print(evaluate_case(scores, issues, tutor_completed=False))
 
 执行时把字典中的 7 个分值、`issues` 和 `tutor_completed` 替换为报告中已经确认的实际值，并把输出写回 `RQ-01.md`。
 
-- [ ] **步骤 5：执行并评分 RQ-02**
+- [x] **步骤 5：执行并评分 RQ-02**
 
 按 RQ-01 相同流程处理 RQ-02 的 4 张图片。额外核对：
 
@@ -1077,12 +1077,59 @@ print(evaluate_case(scores, issues, tutor_completed=False))
 
 将实际结果写入 `RQ-02.md` 和总览表。
 
-- [ ] **步骤 6：提交前两题结果**
+- [x] **步骤 6：提交前两题结果**
 
 ```powershell
 git add docs/quality/cases/RQ-01.md docs/quality/cases/RQ-02.md docs/quality/real-question-baseline-2026-06-27.md
 git commit -m "test(真实题): 完成动点与二次函数基线"
 ```
+
+## 执行快照（2026-07-04 任务 6 RQ-01 与 RQ-02 全链路执行）
+
+执行位置：
+
+- 工作树：`D:\Sven\maths\.worktrees\real-question-baseline`
+- 分支：`feat/real-question-baseline`
+- 分支最新提交：运行 `git rev-parse --short HEAD` 获取。
+
+执行方式偏离说明：
+
+- 计划要求"在入库页按清单顺序选择图片、点解析入库→校对→确认入库→导学"。前端校对页在"知识图谱节点"步骤持续显示"没有匹配的图谱节点"，用户在浏览器无法完成入库操作。经用户明确授权，改由后端 API 直调 `analyze / confirm / tutor/session / tutor/message` 完成任务 6 的 5 个执行分支；DevTools 侧证据被 API 响应替代。相关 UI 阻塞已作为 `P1-UI-01` 记录。
+
+当前进度：
+
+| 任务 | 状态 | 提交 / 验证 |
+|------|------|-------------|
+| 任务 1..4 | 完成 | 见前次快照 |
+| 任务 5：执行运行环境预检 | 完成 | 提交 `60df039` |
+| 任务 6：执行 RQ-01 与 RQ-02 | 完成，5 条 P0 + 4 条 P1 + 1 条 P2 | 本次提交（见 `git log`）；`docs/quality/cases/RQ-01.md`、`RQ-02.md` 与总览已更新 |
+| 任务 7 至任务 10 | 未开始 | 等待用户明确回复"继续"授权任务 7 |
+
+RQ-01 关键证据：
+
+- `question_id=q_04f7fdacb8fc`，`session_id=s_35baaff4ebff`，`total_steps=10`
+- OCR 报错稳定复现 `(Unimplemented) ConvertPirAttribute2RuntimeAttribute`
+- 一路"不知道"共 23 次消息后系统判 `type=complete`，`mastery_update=0.3`，`diagnostic_summary.completed_steps=0/10`
+- DeepSeek 拆的第 3 问结论 `三种情况均无实数解` 与解构稿标答 `(210-10√97)/43`、`(65-5√97)/9` 直接矛盾
+
+RQ-02 关键证据：
+
+- `question_id=q_a81566475c0f`，`session_id=s_afe97ec72ce2`，`total_steps=9`
+- OCR 4 张图全部复现同一报错
+- 一路"不知道"共 24 次消息后系统判 complete，`completed_steps=0/9`
+- DeepSeek 拆的分步结论数学上与解构稿一致（`d_min=1`、`k=(2±√5)/4`），未复现 CONTENT-01
+
+共同 P0（5 条）：
+
+1. `P0-OCR-01`：`backend/services/ocr_service.py:17,43`（PaddleOCR 3.7 API 不兼容）
+2. `P0-TUTOR-01`：`backend/services/tutor_engine.py:200-206`（关键词匹配非数学等价）
+3. `P0-TUTOR-02`：`backend/services/tutor_engine.py:184-186`（越错越进）
+4. `P0-TUTOR-03`：`backend/services/tutor_engine.py:225-235`（无条件 mastery=True）
+5. `P0-CONTENT-01`（RQ-01 复现）：`backend/routers/upload.py` SOLVE_PROMPT + teachable_steps 构造，LLM 数学结论错误无二次校验
+
+共同 P1（4 条）：`UI-01`（图谱节点匹配失败）、`TUTOR-04`（stuck 文案重复拼接）、`HINT-01`（提示泄题）、`REVIEW-01`（默认用户看不到复习计划）。
+
+在用户明确回复"继续"授权前，不得开始任务 7。
 
 ---
 

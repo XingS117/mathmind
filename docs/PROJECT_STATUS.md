@@ -1,8 +1,8 @@
 # 数智学堂项目进度与接续记录
 
-> 快照日期：2026-07-04（含任务 5 环境预检）
+> 快照日期：2026-07-04（含任务 6：RQ-01/02 全链路）
 > 对应方案：v1.1
-> 当前状态：真实复杂题验收进行中，任务 5 环境预检已完成（OCR 推理层报错，作为 P0 候选）
+> 当前状态：真实复杂题验收进行中，任务 6 完成；RQ-01/02 已在系统上跑完整链路，共发现 5 条 P0 + 4 条 P1 + 1 条 P2
 > 用途：供后续 Session、Agent 或开发者快速恢复上下文
 
 ## 1. 权威文档
@@ -22,7 +22,7 @@
 
 - **工作树：** `D:\Sven\maths\.worktrees\real-question-baseline`
 - **分支：** `feat/real-question-baseline`
-- **已完成任务：** 任务 1 / 任务 2 / 任务 3 / 任务 4 / 任务 5（用户已认可 2、3；任务 4 骨架完成；任务 5 环境预检完成）
+- **已完成任务：** 任务 1..5 完成；任务 6 完成（RQ-01 q_04f7fdacb8fc、RQ-02 q_a81566475c0f 已入库并跑完导学）
 - **分支最新提交：** 运行 `git rev-parse --short HEAD` 获取；交接时以 Git 输出为准，不把文档提交号当作代码基线。
 - **执行计划：** [`superpowers/plans/2026-06-27-real-question-acceptance-baseline.md`](superpowers/plans/2026-06-27-real-question-acceptance-baseline.md)
 - **运行状态：** 前后端服务已启动，`5173` 与 `8000` 均在监听；任务 5 完成后可自行停机。
@@ -37,7 +37,8 @@
 | 任务 3：锁定现有上传与确认契约 | 完成（用户已认可） | 契约测试提交 `f1164e0`；契约测试 3/3；后端完整测试 34/34 通过；生产代码零改动 |
 | 任务 4：建立验收报告骨架 | 完成 | 提交 `c90c61e`；`docs/quality/real-question-baseline-2026-06-27.md` 与 `docs/quality/cases/RQ-01..RQ-05.md` 已创建 |
 | 任务 5：执行运行环境预检 | 完成 | 本次提交（见 `git log`）；总览环境表已记录，OCR `ready`；PaddleOCR 3.7 `ocr()` 真实图推理抛 `(Unimplemented) ConvertPirAttribute2RuntimeAttribute`，`/api/v1/questions/analyze` 回退 `source: manual_input`，`confidence=0` |
-| 任务 6 至任务 10 | 未开始 | 等待用户明确回复"继续"授权任务 6 |
+| 任务 6：执行 RQ-01 与 RQ-02 | 完成 | 本次提交（见 `git log`）；q_04f7fdacb8fc / q_a81566475c0f；共发现 5 条 P0 + 4 条 P1 + 1 条 P2；`docs/quality/cases/RQ-01.md`、`RQ-02.md`、总览已更新 |
+| 任务 7 至任务 10 | 未开始 | 等待用户明确回复"继续"授权任务 7 |
 
 任务 2 修复明细：
 
@@ -46,9 +47,9 @@
  3. 增加 7 个维度的独立权重测试，锁定 `15 / 15 / 20 / 10 / 20 / 15 / 5`。
  4. 校验 `tutor_completed` 必须是布尔值，并精确断言 `blocking_dimensions` 的排序。
 
-任务 5 环境预检完成：PaddleOCR 3.7 初始化成功但真实图 `ocr()` 推理报错（PIR/OneDNN 不兼容），已作为跨题共同 P0 候选记录在 `docs/quality/real-question-baseline-2026-06-27.md`。任务 6 起需用户明确回复"继续"授权后才能开始 RQ-01 的实际入库、导学与评分。
+任务 6 完成：RQ-01（10 步）与 RQ-02（9 步）全链路已跑通 analyze → confirm → tutor/session → tutor/message；两题均在"一路错答"下被系统判 complete、`mastery_update=0.3`、`diagnostic_summary.completed_steps=0`。已确认 5 条跨题 P0（`OCR-01`、`TUTOR-01/02/03`、`CONTENT-01` RQ-01 复现）、4 条 P1（`UI-01`、`TUTOR-04`、`HINT-01`、`REVIEW-01`）、1 条 P2（`CONTENT-02`）。因前端校对页图谱节点匹配失败无法完成 UI 入库，本任务经用户授权改走后端 API 直调；下一任务起继续沿用此通道，直到 UI-01 修复。
 
-恢复开发时，先阅读 `docs/quality/real-question-baseline-2026-06-27.md` 中的环境表与 P0 候选说明，再阅读 `docs/quality/cases/RQ-0N.md` 骨架，等待用户明确授权后按实施计划任务 6 开始 RQ-01 的实际入库、导学与评分。
+恢复开发时，先阅读 `docs/quality/real-question-baseline-2026-06-27.md` 的共因排序与 `docs/quality/cases/RQ-01.md`、`RQ-02.md` 的证据，再等待用户明确授权后按任务 7（RQ-03 + RQ-04）继续。任务 6 已由 API 直调完成，下一任务同样走 API 直调，直到 UI-01 被修复。
 
 ## 2. 已确认的产品口径
 

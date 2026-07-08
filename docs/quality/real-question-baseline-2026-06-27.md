@@ -27,15 +27,27 @@
 
 | 案例 | 状态 | 得分 | P0 | P1 | P2 | question_id | 可进入下一阶段 |
 |------|------|------|----|----|----|-------------|----------------|
-| RQ-01 | not_run | 0 | 0 | 0 | 0 | null | 否 |
-| RQ-02 | not_run | 0 | 0 | 0 | 0 | null | 否 |
+| RQ-01 | complete_with_p0 | 10 | 5 | 3 | 0 | q_04f7fdacb8fc | 否 |
+| RQ-02 | complete_with_p0 | 30 | 4 | 4 | 1 | q_a81566475c0f | 否 |
 | RQ-03 | not_run | 0 | 0 | 0 | 0 | null | 否 |
 | RQ-04 | not_run | 0 | 0 | 0 | 0 | null | 否 |
 | RQ-05 | not_run | 0 | 0 | 0 | 0 | null | 否 |
 
 ## 共因排序
 
-基线尚未执行，因此没有已确认共因。环境预检阶段已观察到一个候选跨题共因：PaddleOCR 3.7 `ocr()` 推理在真实印刷体题目上抛 `(Unimplemented) ConvertPirAttribute2RuntimeAttribute`，以较高概率将波及 RQ-01..RQ-05 的入库阶段。正式定级留给任务 9。
+已在 RQ-01、RQ-02 两题上稳定复现以下跨题 P0 与 P1：
+
+1. `P0-OCR-01`：PaddleOCR 3.7 `PaddleOCR(...).ocr(path)` 抛 `(Unimplemented) ConvertPirAttribute2RuntimeAttribute not support [pir::ArrayAttribute<pir::DoubleAttribute>] (onednn_instruction.cc:118)`；`/api/v1/questions/analyze` 稳定回退 `source: manual_input`；`raw_ocr_text=""`、`confidence=0`。相关代码：`backend/services/ocr_service.py:17,43`。
+2. `P0-TUTOR-01`：`_check_answer` 只做关键词包含匹配、不判断数学等价。相关代码：`backend/services/tutor_engine.py:200-206`。
+3. `P0-TUTOR-02`：连续 3 次错答直接推进到下一步（"越错越进"）；末步 stuck 会立即 `_complete`。相关代码：`backend/services/tutor_engine.py:184-186`。
+4. `P0-TUTOR-03`：`_complete` 无条件 `mastery_achieved=True` + `mastery_update=0.3`，即便 `completed_steps=0`。相关代码：`backend/services/tutor_engine.py:225-235`。
+5. `P0-CONTENT-01`（RQ-01 复现，RQ-02 未复现）：DeepSeek 生成的 `teachable_steps` 结论错误（RQ-01 第 3 问结论为"无实数解"，与解构稿 `t=(210-10√97)/43 或 (65-5√97)/9` 矛盾）；导学向学生传递错误答案。跨题性质待 RQ-03..RQ-05 验证。
+6. `P1-UI-01`：校对页图谱节点选择器无法匹配任何节点（"没有匹配的图谱节点"），本次两题 `knowmap_nodes=[]`。
+7. `P1-TUTOR-04`：`stuck_response + expected_answer` 使用同字段导致文案重复拼接（"AB=10, AE=12AB=10, AE=12"）。
+8. `P1-HINT-01`：hint 直接返回该步的完整讲解（100+ 字），等同泄题。
+9. `P1-REVIEW-01`：`schedule_reviews` 写入 4 条复习记录，但 `review.py:get_reviews` 主动屏蔽 `u_default`；家用默认用户看不到复习计划。
+
+RQ-03..RQ-05 尚未跑，正式定级与首个修复包选择留给任务 9。
 
 ## 首个修复包
 
