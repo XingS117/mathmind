@@ -18,8 +18,6 @@ REVIEW_TYPES = ["quick", "variant", "comprehensive", "final"]
 @router.get("/learn/reviews")
 def get_reviews(request: Request, db: DBSession = Depends(get_db)):
     uid = get_user_id(request)
-    if uid == "u_default":
-        return {"upcoming": [], "future": []}
     now = datetime.utcnow()
     upcoming = db.query(ReviewSchedule).filter(
         ReviewSchedule.user_id == uid,
