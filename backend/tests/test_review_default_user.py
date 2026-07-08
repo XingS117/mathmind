@@ -19,7 +19,7 @@ class DefaultUserReviewsTest(unittest.TestCase):
         self.db = SessionLocal()
         self._marker = f"test_{uuid.uuid4().hex[:8]}"
         past = datetime.utcnow() - timedelta(days=1)
-        future = datetime.utcnow() + timedelta(days=10)
+        future = datetime.utcnow() + timedelta(seconds=30)
         for scheduled, tag in ((past, "upcoming"), (future, "future")):
             self.db.add(
                 ReviewSchedule(

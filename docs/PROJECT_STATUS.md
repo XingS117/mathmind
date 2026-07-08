@@ -1,8 +1,8 @@
 # 数智学堂项目进度与接续记录
 
-> 快照日期：2026-07-04（含任务 6：RQ-01/02 全链路）
+> 快照日期：2026-07-09（修复包 A 完成 + 5 题基线闭环）
 > 对应方案：v1.1
-> 当前状态：真实复杂题验收进行中，任务 6 完成；RQ-01/02 已在系统上跑完整链路，共发现 5 条 P0 + 4 条 P1 + 1 条 P2
+> 当前状态：真实复杂题验收 5/5 通过，无 P0 遗留；修复包 A 共 15 条 P0/P1 全部关闭；进入上线前最终验证
 > 用途：供后续 Session、Agent 或开发者快速恢复上下文
 
 ## 1. 权威文档
@@ -22,7 +22,7 @@
 
 - **工作树：** `D:\Sven\maths\.worktrees\real-question-baseline`
 - **分支：** `feat/real-question-baseline`
-- **已完成任务：** 任务 1..5 完成；任务 6 完成（RQ-01 q_04f7fdacb8fc、RQ-02 q_a81566475c0f 已入库并跑完导学）
+- **已完成任务：** 任务 1..9 完成；5 题（RQ-01..RQ-05）全部通过，无 P0 遗留；任务 10 最终验证进行中
 - **分支最新提交：** 运行 `git rev-parse --short HEAD` 获取；交接时以 Git 输出为准，不把文档提交号当作代码基线。
 - **执行计划：** [`superpowers/plans/2026-06-27-real-question-acceptance-baseline.md`](superpowers/plans/2026-06-27-real-question-acceptance-baseline.md)
 - **运行状态：** 前后端服务已启动，`5173` 与 `8000` 均在监听；任务 5 完成后可自行停机。
@@ -37,8 +37,11 @@
 | 任务 3：锁定现有上传与确认契约 | 完成（用户已认可） | 契约测试提交 `f1164e0`；契约测试 3/3；后端完整测试 34/34 通过；生产代码零改动 |
 | 任务 4：建立验收报告骨架 | 完成 | 提交 `c90c61e`；`docs/quality/real-question-baseline-2026-06-27.md` 与 `docs/quality/cases/RQ-01..RQ-05.md` 已创建 |
 | 任务 5：执行运行环境预检 | 完成 | 本次提交（见 `git log`）；总览环境表已记录，OCR `ready`；PaddleOCR 3.7 `ocr()` 真实图推理抛 `(Unimplemented) ConvertPirAttribute2RuntimeAttribute`，`/api/v1/questions/analyze` 回退 `source: manual_input`，`confidence=0` |
-| 任务 6：执行 RQ-01 与 RQ-02 | 完成 | 本次提交（见 `git log`）；q_04f7fdacb8fc / q_a81566475c0f；共发现 5 条 P0 + 4 条 P1 + 1 条 P2；`docs/quality/cases/RQ-01.md`、`RQ-02.md`、总览已更新 |
-| 任务 7 至任务 10 | 未开始 | 等待用户明确回复"继续"授权任务 7 |
+| 任务 6：执行 RQ-01 与 RQ-02 | 已完成（初版 + 修复包 A 后重跑） | q_5ff68b31c550 / q_52f4dbf31d39；`solution_confidence=high`；0/5、0/10 全错 → `mastery_update=0.0` |
+| 任务 7：执行 RQ-03 与 RQ-04 | 完成 | q_51717033d542 / q_fde2dcfbaac8；均 90 分，无 P0 |
+| 任务 8：执行 RQ-05 | 完成 | q_67928e673fbe；90 分；LLM 未照搬错标答，final=π-2 |
+| 任务 9：汇总共因 + 首个修复包 | 完成 | 修复包 A 已闭环 15 条 P0/P1；见 `docs/quality/real-question-baseline-2026-06-27.md` |
+| 任务 10：最终验证 + 交接 | 进行中 | backend 65 pass / knowmap 11 pass / tsc / build 已跑；Chrome DevTools 需用户手动跑；部署平台待用户确认 |
 
 任务 2 修复明细：
 
@@ -47,9 +50,11 @@
  3. 增加 7 个维度的独立权重测试，锁定 `15 / 15 / 20 / 10 / 20 / 15 / 5`。
  4. 校验 `tutor_completed` 必须是布尔值，并精确断言 `blocking_dimensions` 的排序。
 
-任务 6 完成：RQ-01（10 步）与 RQ-02（9 步）全链路已跑通 analyze → confirm → tutor/session → tutor/message；两题均在"一路错答"下被系统判 complete、`mastery_update=0.3`、`diagnostic_summary.completed_steps=0`。已确认 5 条跨题 P0（`OCR-01`、`TUTOR-01/02/03`、`CONTENT-01` RQ-01 复现）、4 条 P1（`UI-01`、`TUTOR-04`、`HINT-01`、`REVIEW-01`）、1 条 P2（`CONTENT-02`）。因前端校对页图谱节点匹配失败无法完成 UI 入库，本任务经用户授权改走后端 API 直调；下一任务起继续沿用此通道，直到 UI-01 修复。
+修复包 A 已闭环：15 条 P0/P1（OCR-01/02、STARTUP-01、TUTOR-01/02/03、CONTENT-01、UX-BANNER-01、UX-01、UI-01、TUTOR-04、HINT-01、REVIEW-01、DASHBOARD-01、UX-KP-01）在 2026-07-09 修复后重跑的 5 题基线中全部验证关闭。
 
-恢复开发时，先阅读 `docs/quality/real-question-baseline-2026-06-27.md` 的共因排序与 `docs/quality/cases/RQ-01.md`、`RQ-02.md` 的证据，再等待用户明确授权后按任务 7（RQ-03 + RQ-04）继续。任务 6 已由 API 直调完成，下一任务同样走 API 直调，直到 UI-01 被修复。
+5 题证据：RQ-01 80/100（`q_5ff68b31c550`）、RQ-02 90/100（`q_52f4dbf31d39`）、RQ-03 90/100（`q_51717033d542`）、RQ-04 90/100（`q_fde2dcfbaac8`）、RQ-05 90/100（`q_67928e673fbe`）；均 `solution_confidence=high`、0 对时 `mastery_update=0.0`。
+
+恢复开发时，先阅读 `docs/quality/real-question-baseline-2026-06-27.md` 的共因排序与 `docs/quality/cases/RQ-01..RQ-05.md` 的证据，再按 `AGENT_HANDOFF.md` 交接段决定下一步。
 
 ## 2. 已确认的产品口径
 
@@ -131,7 +136,7 @@ MVP 主闭环：
 
 ## 6. 已知技术缺口
 
-1. 真实复杂含图题尚未经过端到端验证，这是当前最大的产品风险。
+1. 真实复杂含图题验收：5/5 通过，无 P0 遗留（修复包 A 已闭环）。
 2. 当前答案判断主要依赖关键词规则，尚未实现规则失败后的 LLM 评价。
 3. `mastery_update` 会返回给前端，但尚未可靠写入掌握度记录。
 4. 图谱题目卡片尚未展示最近诊断、推荐原因和明确的“开始复习”入口。
