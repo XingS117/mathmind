@@ -2,7 +2,7 @@
 
 > 快照日期：2026-07-09（修复包 A 完成 + 5 题基线闭环）
 > 对应方案：v1.1
-> 当前状态：上线就绪。真实复杂题 5/5 通过、修复包 A 15 条 P0/P1 关闭；Windows 单机单端口部署脚本已交付并端到端验证
+> 当前状态：**已正式上线 https://mathmind.xingshuwen.com/**（腾讯云 Ubuntu + nginx + Let's Encrypt + systemd）；UA 测试 5 大项全通过
 > 用途：供后续 Session、Agent 或开发者快速恢复上下文
 
 ## 1. 权威文档
@@ -22,7 +22,7 @@
 
 - **工作树：** `D:\Sven\maths\.worktrees\real-question-baseline`
 - **分支：** `feat/real-question-baseline`
-- **已完成任务：** 任务 1..10 全部完成；部署脚本、单端口托管、LLM env 覆盖、DEPLOYMENT 文档均已交付
+- **已完成任务：** 任务 1..10 全部完成，且**已完成正式部署上线**；UA 测试见 `docs/quality/ua-2026-07-09.md`；运维见 `docs/DEPLOYMENT-live.md`
 - **分支最新提交：** 运行 `git rev-parse --short HEAD` 获取；交接时以 Git 输出为准，不把文档提交号当作代码基线。
 - **执行计划：** [`superpowers/plans/2026-06-27-real-question-acceptance-baseline.md`](superpowers/plans/2026-06-27-real-question-acceptance-baseline.md)
 - **运行状态：** 前后端服务已启动，`5173` 与 `8000` 均在监听；任务 5 完成后可自行停机。

@@ -2,8 +2,8 @@
 
 > 适用工作树：`D:\Sven\maths\.worktrees\real-question-baseline`
 > 适用分支：`feat/real-question-baseline`
-> 当前允许任务：上线就绪（Windows 单机 + 单端口）；可直接双击 `scripts/serve.ps1` 启动
-> 下一任务：按用户需要做 P2 增强 / Docker 打包 / 反代 HTTPS，均需用户明确回复
+> 当前允许任务：已正式上线到 https://mathmind.xingshuwen.com/；UA 测试全部通过
+> 下一任务：按用户需要做 P2 增强 / 域名收尾 / 数据备份策略
 
 ## 项目价值
 
@@ -43,10 +43,13 @@ MVP 主闭环：
 
 ## 当前断点
 
+- 已完成正式上线：**https://mathmind.xingshuwen.com/**（腾讯云 Ubuntu 24.04，nginx + Let's Encrypt HTTPS + systemd 守护）。
+- 后端：`mathmind.service` 挂 `uvicorn 127.0.0.1:8100`；前端 `frontend/dist` 由 backend 单端口托管；LLM key 从 `.env` 注入。
+- UA 测试（`docs/quality/ua-2026-07-09.md`）：5 大项全通过，含真实 OCR + LLM + tutor 端到端；OCR 冷启单张 <25s，LLM confirm 约 14s。
 - 任务 1..10 已完成：5 题（RQ-01..RQ-05）验收全部通过，无 P0 遗留；修复包 A 已闭环 15 条 P0/P1。
 - 5 题得分：RQ-01 80、RQ-02 90、RQ-03 90、RQ-04 90、RQ-05 90；均 `solution_confidence=high`；0 对时 `mastery_update=0.0`。
 - 遗留 3 类 P2 均为计划外增强项：`CONTENT-02`（LLM 未强制化简）、`DIAGRAM-01`（无 diagram_json）、`VERIFY-01`（未强制标记原标答矛盾）。
-- 2026-07-09 最终验证：backend 65 pass / knowmap 11 pass / tsc 0 error / `npm run build` 通过（39 modules，255.56 KB）。
+- 最终验证：backend 67 pass / knowmap 11 pass / tsc 0 error / `npm run build` 通过（39 modules，255.56 KB）。
 - `rg -n "not_run|基线尚未执行" docs/quality` 无输出。
 - 当前分支最新提交必须通过 `git rev-parse --short HEAD` 获取。
 

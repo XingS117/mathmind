@@ -1,0 +1,103 @@
+# 生产部署（腾讯云 Ubuntu）· mathmind.xingshuwen.com
+
+已上线：**https://mathmind.xingshuwen.com/**
+
+## 主机与账号
+
+- 主机：腾讯云 CVM，IPv4 `111.229.187.91`（22 端口 SSH，密钥登录）
+- SSH 用户：`ubuntu`
+- SSH 私钥（本机不入库）：`C:\Users\shuwe\.ssh\mathmind_tencent.pem`
+- 域名：`mathmind.xingshuwen.com`（A 记录 → `111.229.187.91`）
+- 证书：Let’s Encrypt，`/etc/letsencrypt/live/mathmind.xingshuwen.com/`，`certbot` systemd timer 自动续签
+
+## 服务器目录
+
+```
+/data/mathmind/
+├── deploy.tar.gz          # 首次上传的完整代码 + 前端 dist
+└── app/
+    ├── backend/           # FastAPI 后端
+    ├── frontend/dist/     # 前端产物（backend 直接 serve）
+    ├── data/
+    ├── docs/
+    ├── scripts/
+    ├── tools/
+    ├── requirements.txt
+    ├── .venv/             # Python 3.12 venv
+    ├── .env               # 生产环境变量（chmod 600，未入库）
+    └── mathmind.db        # SQLite（首次启动 seed）
+```
+
+## systemd
+
+- Unit：`/etc/systemd/system/mathmind.service`
+- 启动命令：`.venv/bin/uvicorn backend.main:app --host 127.0.0.1 --port 8100`
+- 常用运维：
+
+```bash
+sudo systemctl status mathmind
+sudo systemctl restart mathmind
+sudo journalctl -u mathmind -n 100 --no-pager
+```
+
+## nginx
+
+- 站点：`/etc/nginx/sites-available/mathmind.xingshuwen.com`
+- 80 → 301 到 443
+- 443：`proxy_pass http://127.0.0.1:8100`，`client_max_body_size 30m`（覆盖多图上传）
+
+## LLM 配置
+
+`.env`（`/data/mathmind/app/.env`）由 systemd `EnvironmentFile=` 注入：
+
+```
+MATHMIND_LLM_API_KEY=sk-********
+MATHMIND_LLM_PROVIDER=deepseek
+MATHMIND_LLM_MODEL=deepseek-chat
+MATHMIND_LLM_BASE_URL=https://api.deepseek.com/v1
+```
+
+优先级：**env > SQLite UserSettings**，见 `backend/routers/upload.py:_get_llm_config`，测试 `backend/tests/test_llm_env_override.py`。
+
+## 更新流程（源码变更后）
+
+在开发机（Windows）：
+
+```powershell
+cd D:\Sven\maths\.worktrees\real-question-baseline
+cd frontend
+npm run build
+cd ..
+git archive --format=tar.gz -o _temp\src.tar.gz HEAD
+# 打包时把 frontend/dist 补进去
+if (Test-Path _temp\bundle) { Remove-Item _temp\bundle -Recurse -Force }
+New-Item -ItemType Directory _temp\bundle | Out-Null
+tar -xzf _temp\src.tar.gz -C _temp\bundle
+Copy-Item frontend\dist _temp\bundle\frontend\ -Recurse -Force
+Push-Location _temp\bundle
+tar -czf ..\deploy-full.tar.gz .
+Pop-Location
+scp -i C:\Users\shuwe\.ssh\mathmind_tencent.pem _temp\deploy-full.tar.gz ubuntu@111.229.187.91:/data/mathmind/deploy.tar.gz
+```
+
+服务器：
+
+```bash
+cd /data/mathmind
+tar -xzf deploy.tar.gz -C app
+sudo systemctl restart mathmind
+```
+
+如 `requirements.txt` 有变动：`/data/mathmind/app/.venv/bin/pip install -r /data/mathmind/app/requirements.txt`。
+
+## 数据库备份
+
+```bash
+cp /data/mathmind/app/mathmind.db /data/mathmind/backup-$(date +%Y%m%d).db
+```
+
+## 快速排障
+
+- 500 ： `sudo journalctl -u mathmind -n 200`
+- OCR 未 ready：默认 20-40s 初始化；从 `journalctl` 看 `PP-LCNet_x1_0_doc_ori` 下载进度
+- 前端 404：确认 `frontend/dist/index.html` 存在，`backend/main.py` 启动日志有 `Serving frontend from ...`
