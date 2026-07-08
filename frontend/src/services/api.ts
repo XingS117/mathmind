@@ -6,6 +6,7 @@ export interface AnalysisResult {
   text?: string;
   question_type?: string;
   knowledge_points?: string[];
+  suggested_nodes?: string[];
   difficulty?: number;
   has_diagram?: boolean;
   key_insight?: string;

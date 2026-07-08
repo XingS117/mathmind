@@ -15,6 +15,8 @@ from backend.schemas.api_schemas import QuestionAnalysisResponse, QuestionConfir
 from backend.services.auth_service import get_user_id
 from backend.services.llm_service import call_llm_with_config
 from backend.services.ocr_service import ocr_image
+from backend.services.knowmap_matcher import suggest_nodes
+from backend.services.knowmap_service import get_tree
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["upload"])
@@ -197,6 +199,7 @@ async def analyze_question(images: List[UploadFile] = File(alias="image"), reque
         text=data.get("text", raw_text),
         question_type=data.get("question_type", "计算题"),
         knowledge_points=data.get("knowledge_points", []),
+        suggested_nodes=suggest_nodes(data.get("knowledge_points", []), get_tree("")),
         difficulty=data.get("difficulty", 2),
         has_diagram=data.get("has_diagram", False),
         key_insight=data.get("key_insight", ""),

@@ -55,6 +55,22 @@ export default function ImageUpload({ grade = "高中", onConfirm }: Props) {
     return knowmapNodes.filter(n => ids.has(n.id));
   }, [knowmapNodes, result?.knowmap_nodes]);
 
+  const suggestedNodes = useMemo(() => {
+    const suggested = result?.suggested_nodes || [];
+    if (suggested.length === 0) return [];
+    const bySet = new Set(result?.knowmap_nodes || []);
+    const byId = new Map(knowmapNodes.map(n => [n.id, n] as const));
+    return suggested
+      .map(id => byId.get(id))
+      .filter((n): n is KnowMapNode => !!n && !bySet.has(n.id));
+  }, [result?.suggested_nodes, result?.knowmap_nodes, knowmapNodes]);
+
+  const addAllSuggested = () => {
+    if (!result || suggestedNodes.length === 0) return;
+    const merged = Array.from(new Set([...(result.knowmap_nodes || []), ...suggestedNodes.map(n => n.id)]));
+    updateResult({ knowmap_nodes: merged });
+  };
+
   const updateResult = (patch: Partial<ReviewDraft>) => {
     setResult(prev => prev ? { ...prev, ...patch } : prev);
   };
@@ -296,6 +312,31 @@ export default function ImageUpload({ grade = "高中", onConfirm }: Props) {
 
               <label style={{ ...labelStyle, marginTop: 10 }}>图谱节点</label>
               <div>
+                {suggestedNodes.length > 0 && (
+                  <div style={{ marginBottom: 10, padding: 10, border: "1px solid rgba(30,64,175,0.15)", background: "var(--brand-bg)", borderRadius: "var(--radius-sm)" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--brand)" }}>
+                        🤖 AI 根据知识点建议 ({suggestedNodes.length})
+                      </span>
+                      <button type="button" onClick={addAllSuggested}
+                        style={{ fontSize: 11, padding: "4px 10px", border: "1px solid var(--brand)", background: "var(--brand)", color: "#fff", borderRadius: 999, cursor: "pointer", fontWeight: 500 }}>
+                        全部添加
+                      </button>
+                    </div>
+                    <div style={{ display: "grid", gap: 4 }}>
+                      {suggestedNodes.map(n => (
+                        <button key={n.id} type="button" onClick={() => addNode(n.id)}
+                          style={{ display: "flex", justifyContent: "space-between", gap: 8, width: "100%", textAlign: "left", padding: "6px 10px", border: "1px solid rgba(30,64,175,0.2)", borderRadius: "var(--radius-sm)", background: "var(--card)", color: "var(--text)", cursor: "pointer", fontSize: 12, lineHeight: 1.4 }}>
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{formatNodePath(n, knowmapNodes)}</span>
+                          <span style={{ color: "var(--brand)", fontWeight: 700, flexShrink: 0 }}>+ 添加</span>
+                        </button>
+                      ))}
+                    </div>
+                    <p style={{ fontSize: 10, color: "var(--text-muted)", margin: "6px 0 0" }}>
+                      建议由 AI 从题目知识点匹配得到，仅供参考；找不到合适节点请在下方搜索或按教材浏览。
+                    </p>
+                  </div>
+                )}
                 <input value={nodeQuery} onChange={e => setNodeQuery(e.target.value)}
                   placeholder="搜索章节、知识点或节点 ID"
                   aria-label="搜索图谱节点"
