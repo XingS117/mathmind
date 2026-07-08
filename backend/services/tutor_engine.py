@@ -100,7 +100,7 @@ def process_message(
 
     if intent == "hint":
         session.hints_used += 1
-        hint = step_data.get("hint", "再想想？")
+        hint = _short_hint(step_data)
         hints_remaining = max(0, 3 - session.hints_used)
         reply = f"提示：{hint}"
         messages.append({"role": "system", "content": reply})
@@ -193,6 +193,48 @@ def _check_answer(user_answer: str, expected: str) -> bool:
         return False
     expected_keywords = expected.replace("？", "").replace("?", "").split()
     return any(kw in user_answer for kw in expected_keywords)
+
+_MAX_HINT_CHARS = 40
+
+
+def _short_hint(step_data: dict) -> str:
+    """Return a *short* nudge for the ``hint`` intent (P1-HINT-01).
+
+    Historically ``hint`` returned ``step_data["hint"]`` verbatim, but
+    upload.py fills that field with the full step description (100+
+    Chinese characters) — that is the entire solution, so returning it
+    is textbook leakage.
+
+    We now derive a hint that:
+    - prefers ``guiding_question`` (an open-ended prompt);
+    - falls back to the first sentence of ``hint``/``description`` and
+      never exceeds ``_MAX_HINT_CHARS`` visible characters;
+    - never returns the full expected answer even if the caller stuffed
+      it into ``hint``.
+    """
+    guiding = str(step_data.get("guiding_question") or "").strip()
+    if guiding:
+        return _truncate_hint(guiding)
+    raw = str(step_data.get("hint") or step_data.get("description") or "").strip()
+    if not raw:
+        return "再想想？"
+    expected = str(step_data.get("expected_answer") or "").strip()
+    if expected and expected in raw:
+        # If someone (LLM/prompt bug) put the full answer inside hint,
+        # drop the answer portion so we don't leak it.
+        raw = raw.split(expected, 1)[0].strip() or raw
+    return _truncate_hint(raw)
+
+
+def _truncate_hint(text: str) -> str:
+    text = text.strip()
+    if len(text) <= _MAX_HINT_CHARS:
+        return text
+    # Try to cut at the first sentence boundary within the budget.
+    for i, ch in enumerate(text[:_MAX_HINT_CHARS]):
+        if ch in "。！？!?；;\n":
+            return text[: i + 1]
+    return text[:_MAX_HINT_CHARS].rstrip() + "…"
 
 def _advance(session, steps, messages, teaching_steps, next_step, hints_remaining, reply_override=None):
     """Advance to the next step."""
