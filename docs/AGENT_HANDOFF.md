@@ -2,8 +2,8 @@
 
 > 适用工作树：`D:\Sven\maths\.worktrees\real-question-baseline`
 > 适用分支：`feat/real-question-baseline`
-> 当前允许任务：任务 7，执行 RQ-03 与 RQ-04（等待用户明确回复"继续"授权）
-> 下一任务：任务 8，未经用户明确回复"继续"禁止开始
+> 当前允许任务：上线预检完成；等待用户确认部署目标平台
+> 下一任务：按用户回复决定部署方式（Docker / Linux 主机 / Windows 服务）
 
 ## 项目价值
 
@@ -43,29 +43,33 @@ MVP 主闭环：
 
 ## 当前断点
 
-- 任务 1..4 已完成并通过审查（见 PROJECT_STATUS）。
-- 任务 5 已完成：环境预检提交 `60df039`；`/health` ok、`/api/v1/health/ocr` ready；PaddleOCR 3.7 `ocr()` 真实图推理抛 `(Unimplemented) ConvertPirAttribute2RuntimeAttribute`。
-- 任务 6 已完成：RQ-01（`q_04f7fdacb8fc` / `s_35baaff4ebff` / 10 步）与 RQ-02（`q_a81566475c0f` / `s_afe97ec72ce2` / 9 步）全链路通过 API 直调完成。两题均在一路错答下被系统判 complete、`mastery_update=0.3`、`completed_steps=0`。
-- 已确认 5 条跨题 P0：`OCR-01`（PaddleOCR PIR/OneDNN 不兼容）、`TUTOR-01`（关键词匹配非数学等价）、`TUTOR-02`（越错越进）、`TUTOR-03`（无条件 mastery=True）、`CONTENT-01`（RQ-01 复现，LLM 数学结论错误）。
-- 4 条跨题 P1：`UI-01`（校对页图谱节点匹配失败）、`TUTOR-04`（stuck 文案重复拼接）、`HINT-01`（提示泄题）、`REVIEW-01`（默认用户看不到复习计划）。
-- 1 条 P2：`CONTENT-02`（LLM 分步答案未化简）。
-- 当前分支最新提交必须通过 `git rev-parse --short HEAD` 获取，不得把上述历史证据误认为当前 `HEAD`。
+- 任务 1..10 已完成：5 题（RQ-01..RQ-05）验收全部通过，无 P0 遗留；修复包 A 已闭环 15 条 P0/P1。
+- 5 题得分：RQ-01 80、RQ-02 90、RQ-03 90、RQ-04 90、RQ-05 90；均 `solution_confidence=high`；0 对时 `mastery_update=0.0`。
+- 遗留 3 类 P2 均为计划外增强项：`CONTENT-02`（LLM 未强制化简）、`DIAGRAM-01`（无 diagram_json）、`VERIFY-01`（未强制标记原标答矛盾）。
+- 2026-07-09 最终验证：backend 65 pass / knowmap 11 pass / tsc 0 error / `npm run build` 通过（39 modules，255.56 KB）。
+- `rg -n "not_run|基线尚未执行" docs/quality` 无输出。
+- 当前分支最新提交必须通过 `git rev-parse --short HEAD` 获取。
 
-任务 7 至任务 10 均未开始。
+## 部署前待用户确认的事项
+
+1. **部署平台**：Docker / Linux 主机（systemd）/ Windows 服务？决定 uvicorn/vite build 的启动方式与守护策略。
+2. **域名 + HTTPS**：家用局域网 IP 还是绑定域名？是否需要反向代理（nginx / Caddy）+ 证书？
+3. **DeepSeek API Key 迁移**：当前 key 存 SQLite `UserSettings` 表；生产建议迁到环境变量或 `.env` 文件。是否切换？
+4. **数据库**：现工作树 `mathmind.db` 已含 62 条 `u_default` 复习记录 + 若干测试题；上线是否使用干净 seed？还是保留？
+5. **端口 / 前端资源路径**：默认 5173（dev）与 8000（backend）。上线一般把 `frontend/dist` 交由 backend 或 nginx 托管；是否需要合并到单端口？
+6. **Chrome DevTools 桌面/移动布局最终核对**：当前 agent 无浏览器控制能力，需用户手动或授权浏览器 skill 补跑。
+
+以上问题回答后，即可切入部署脚本 / Dockerfile / systemd unit 编写。
 
 ## 当前只允许解决的问题
 
-任务 6 已完成（本次提交，见 `git log`）：`docs/quality/cases/RQ-01.md`、`RQ-02.md`、`docs/quality/real-question-baseline-2026-06-27.md` 已按真实证据填写；实施计划任务 6 六个复选框全部勾选；追加 2026-07-04 任务 6 执行快照。零代码改动。
+线下功能全部闭环，仅剩以下方向可开工：
 
-任务 7（RQ-03 + RQ-04）尚未授权。执行任务 7 时只允许：
+1. 按用户对"部署前待用户确认的事项"的回答，编写部署脚本 / Dockerfile / systemd unit / nginx 配置。
+2. 若用户要求做 P2 收敛：`CONTENT-02` 化简、`DIAGRAM-01` 结构化图形、`VERIFY-01` 原标答矛盾标注，任选其一按 TDD 推进。
+3. 若用户要求 UX 复核：Chrome DevTools 桌面 1440×900 + 移动 390×844 手动跑一遍并回填证据。
 
-1. 按 `data/acceptance/real-question-cases.json` 的 RQ-03、RQ-04 图片顺序调 `POST /api/v1/questions/analyze`（前端 UI-01 未修复前继续走 API 直调）。
-2. 用解构稿字段调 `POST /api/v1/questions/confirm` 完成入库；记录 `question_id`。
-3. 每题跑一次 tutor 5 分支：错答 → 提示 → 连续 2 次不知道 → 一路错答直到 complete；记录 `session_id`、`diagnostic_summary`。
-4. 按证据在 `docs/quality/cases/RQ-03.md`、`RQ-04.md` 打 0/1/2 分并记录 P0/P1/P2；对 `CONTENT-01` 是否复现给出结论。
-5. 只覆盖 RQ-03、RQ-04；不得同时推进 RQ-05；不得改动生产代码。
-
-未经用户明确回复"继续"，不得开始任务 7。
+未经用户回复不得选择方向。
 
 ## 单任务执行协议
 
