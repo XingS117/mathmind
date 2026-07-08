@@ -2,8 +2,8 @@
 
 > 适用工作树：`D:\Sven\maths\.worktrees\real-question-baseline`
 > 适用分支：`feat/real-question-baseline`
-> 当前允许任务：上线预检完成；等待用户确认部署目标平台
-> 下一任务：按用户回复决定部署方式（Docker / Linux 主机 / Windows 服务）
+> 当前允许任务：上线就绪（Windows 单机 + 单端口）；可直接双击 `scripts/serve.ps1` 启动
+> 下一任务：按用户需要做 P2 增强 / Docker 打包 / 反代 HTTPS，均需用户明确回复
 
 ## 项目价值
 
@@ -50,16 +50,30 @@ MVP 主闭环：
 - `rg -n "not_run|基线尚未执行" docs/quality` 无输出。
 - 当前分支最新提交必须通过 `git rev-parse --short HEAD` 获取。
 
-## 部署前待用户确认的事项
+## 部署方式（已实现）
 
-1. **部署平台**：Docker / Linux 主机（systemd）/ Windows 服务？决定 uvicorn/vite build 的启动方式与守护策略。
-2. **域名 + HTTPS**：家用局域网 IP 还是绑定域名？是否需要反向代理（nginx / Caddy）+ 证书？
-3. **DeepSeek API Key 迁移**：当前 key 存 SQLite `UserSettings` 表；生产建议迁到环境变量或 `.env` 文件。是否切换？
-4. **数据库**：现工作树 `mathmind.db` 已含 62 条 `u_default` 复习记录 + 若干测试题；上线是否使用干净 seed？还是保留？
-5. **端口 / 前端资源路径**：默认 5173（dev）与 8000（backend）。上线一般把 `frontend/dist` 交由 backend 或 nginx 托管；是否需要合并到单端口？
-6. **Chrome DevTools 桌面/移动布局最终核对**：当前 agent 无浏览器控制能力，需用户手动或授权浏览器 skill 补跑。
+**默认：Windows 单机 + 单端口。** 详见 `docs/DEPLOYMENT.md`。
 
-以上问题回答后，即可切入部署脚本 / Dockerfile / systemd unit 编写。
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\build.ps1   # 构建前端产物
+powershell -ExecutionPolicy Bypass -File scripts\serve.ps1   # 启动生产服务
+# 打开 http://127.0.0.1:8000/ 即可
+```
+
+**关键实现点：**
+
+1. **单端口**：backend `/` 直接托管 `frontend/dist`，`/assets/*` 走 StaticFiles，非 API 的 404 走 SPA fallback（`backend/main.py`）。
+2. **LLM key 迁 env**：`_get_llm_config` 优先读 `MATHMIND_LLM_API_KEY` / `DEEPSEEK_API_KEY`，其次 SQLite `UserSettings`；两条新增测试 `test_llm_env_override.py`。
+3. **局域网访问**：`$env:MATHMIND_HOST="0.0.0.0"` + `scripts/serve.ps1`。
+4. **开机自启**：`DEPLOYMENT.md` 有 Task Scheduler 一行命令。
+5. **数据库**：`mathmind.db` 直接复制备份；干净上线时删掉重启自动 seed。
+
+**未做的可选项（要做需用户回复）：**
+
+- Docker / systemd（当前是 Windows PS 方案；如果用户要 Docker 打包，我可以补 `Dockerfile` + `docker-compose.yml`）。
+- 反代 + HTTPS（家用局域网默认不需要；要挂公网时补 Caddyfile / nginx.conf）。
+- Chrome DevTools 桌面/移动最终布局核对（我没有浏览器控制能力，需要用户手动或授权 browser skill）。
+- P2 收敛：`CONTENT-02`（LLM 化简）、`DIAGRAM-01`（diagram_json）、`VERIFY-01`（原标答矛盾标注）。
 
 ## 当前只允许解决的问题
 

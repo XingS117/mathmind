@@ -2,7 +2,7 @@
 
 > 快照日期：2026-07-09（修复包 A 完成 + 5 题基线闭环）
 > 对应方案：v1.1
-> 当前状态：真实复杂题验收 5/5 通过，无 P0 遗留；修复包 A 共 15 条 P0/P1 全部关闭；进入上线前最终验证
+> 当前状态：上线就绪。真实复杂题 5/5 通过、修复包 A 15 条 P0/P1 关闭；Windows 单机单端口部署脚本已交付并端到端验证
 > 用途：供后续 Session、Agent 或开发者快速恢复上下文
 
 ## 1. 权威文档
@@ -22,7 +22,7 @@
 
 - **工作树：** `D:\Sven\maths\.worktrees\real-question-baseline`
 - **分支：** `feat/real-question-baseline`
-- **已完成任务：** 任务 1..9 完成；5 题（RQ-01..RQ-05）全部通过，无 P0 遗留；任务 10 最终验证进行中
+- **已完成任务：** 任务 1..10 全部完成；部署脚本、单端口托管、LLM env 覆盖、DEPLOYMENT 文档均已交付
 - **分支最新提交：** 运行 `git rev-parse --short HEAD` 获取；交接时以 Git 输出为准，不把文档提交号当作代码基线。
 - **执行计划：** [`superpowers/plans/2026-06-27-real-question-acceptance-baseline.md`](superpowers/plans/2026-06-27-real-question-acceptance-baseline.md)
 - **运行状态：** 前后端服务已启动，`5173` 与 `8000` 均在监听；任务 5 完成后可自行停机。
@@ -41,7 +41,7 @@
 | 任务 7：执行 RQ-03 与 RQ-04 | 完成 | q_51717033d542 / q_fde2dcfbaac8；均 90 分，无 P0 |
 | 任务 8：执行 RQ-05 | 完成 | q_67928e673fbe；90 分；LLM 未照搬错标答，final=π-2 |
 | 任务 9：汇总共因 + 首个修复包 | 完成 | 修复包 A 已闭环 15 条 P0/P1；见 `docs/quality/real-question-baseline-2026-06-27.md` |
-| 任务 10：最终验证 + 交接 | 进行中 | backend 65 pass / knowmap 11 pass / tsc / build 已跑；Chrome DevTools 需用户手动跑；部署平台待用户确认 |
+| 任务 10：最终验证 + 交接 | 完成（Windows 单机方案）| backend 67 pass / knowmap 11 pass / tsc 0 error / vite build 通过；单端口托管前端已验证；`scripts/build.ps1` + `scripts/serve.ps1` + `docs/DEPLOYMENT.md` |
 
 任务 2 修复明细：
 

@@ -47,3 +47,39 @@ app.include_router(health.router, prefix="/api/v1")
 @app.get("/health")
 def health():
     return {"status": "ok", "version": "0.1.0"}
+
+
+# --- Serve compiled frontend (single-port production) ---------------------
+# When ``frontend/dist`` exists, mount it so ``/`` returns index.html and
+# ``/assets/*`` serves the compiled bundle. Missing dir is not an error (dev
+# mode still uses Vite on :5173).
+import os as _os
+from pathlib import Path as _Path
+from fastapi.responses import FileResponse as _FileResponse
+from fastapi.staticfiles import StaticFiles as _StaticFiles
+
+_DIST = _Path(__file__).resolve().parent.parent / "frontend" / "dist"
+if _DIST.is_dir():
+    app.mount("/assets", _StaticFiles(directory=str(_DIST / "assets")), name="assets")
+
+    @app.get("/")
+    def _index():
+        return _FileResponse(str(_DIST / "index.html"))
+
+    # SPA fallback: any GET that is not an API route falls back to index.html
+    from starlette.requests import Request as _Req
+    from starlette.responses import Response as _Resp
+
+    @app.middleware("http")
+    async def _spa_fallback(request: _Req, call_next):
+        resp: _Resp = await call_next(request)
+        if (
+            resp.status_code == 404
+            and request.method == "GET"
+            and not request.url.path.startswith(("/api", "/assets", "/health", "/docs", "/openapi"))
+        ):
+            return _FileResponse(str(_DIST / "index.html"))
+        return resp
+    logger.info(f"Serving frontend from {_DIST}")
+else:
+    logger.info("frontend/dist not present; frontend not served from backend")

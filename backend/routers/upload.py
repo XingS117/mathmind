@@ -127,7 +127,33 @@ def _strip_code_fence(text: str) -> str:
 
 
 def _get_llm_config(uid: str) -> tuple[bool, dict | None]:
+    """Resolve LLM config with the following precedence:
+
+    1. ``MATHMIND_LLM_API_KEY`` (or provider-specific env below) — always wins
+       so production deployments do not have to store keys in the SQLite
+       ``UserSettings`` table.
+    2. Current user's ``UserSettings`` row.
+    3. ``u_admin``'s ``UserSettings`` row (fallback for the default user).
+
+    Provider-specific env fallbacks (used only when
+    ``MATHMIND_LLM_API_KEY`` is not set): ``DEEPSEEK_API_KEY`` +
+    ``MATHMIND_LLM_PROVIDER``/``MATHMIND_LLM_MODEL``/``MATHMIND_LLM_BASE_URL``.
+    """
+
+    import os as _os
     from backend.database import SessionLocal
+
+    env_key = _os.getenv("MATHMIND_LLM_API_KEY") or _os.getenv("DEEPSEEK_API_KEY")
+    if env_key:
+        provider = _os.getenv("MATHMIND_LLM_PROVIDER", "deepseek")
+        model = _os.getenv("MATHMIND_LLM_MODEL", "deepseek-chat")
+        base_url = _os.getenv("MATHMIND_LLM_BASE_URL", "")
+        return True, {
+            "model_provider": provider,
+            "api_key": env_key,
+            "model_name": model,
+            "base_url": base_url,
+        }
 
     db = SessionLocal()
     try:
