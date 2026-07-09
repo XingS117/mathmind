@@ -24,7 +24,7 @@ def login(req: LoginRequest, db: DBSession = Depends(get_db)):
         raise HTTPException(401, "用户名或密码错误")
     if not verify_password(req.password, user.password_hash):
         raise HTTPException(401, "用户名或密码错误")
-    print(f"DEBUG: verify={verify_password(req.password, user.password_hash)}"); print(f"DEBUG: create_token for {user.id}"); token = create_token(user.id); print(f"DEBUG: token={token[:30]}...")
+    token = create_token(user.id)
     return {"token": token, "user": {"id": user.id, "name": user.name, "role": user.role, "school_level": user.school_level}}
 
 @router.get("/auth/me")

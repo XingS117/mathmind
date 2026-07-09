@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import ImageUpload from "./components/ImageUpload";
 import KnowMapPage from "./pages/KnowMapPage";
 import TutorPage from "./pages/TutorPage";
@@ -6,7 +6,7 @@ import DashboardPage from "./pages/DashboardPage"
 import SettingsPage from "./pages/SettingsPage"
 import WenXingLogo from "./components/WenXingLogo"
 import LoginPage from "./pages/LoginPage";
-import { getActiveSession, uploadQuestion } from "./services/api";
+import { getActiveSession, uploadQuestion, fetchMe, logout, AuthUser } from "./services/api";
 
 type Page = "dashboard" | "upload" | "knowmap" | "tutor" | "settings" | "login";
 type Grade = "初中" | "高中";
@@ -17,12 +17,27 @@ export default function App() {
   const [selectedQid, setSelectedQid] = useState<string | null>(null);
   const [focusedWeakPoint, setFocusedWeakPoint] = useState<string>("");
   const [grade, setGrade] = useState<Grade>("高中");
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [uploading, setUploading] = useState(false);
 
-  useEffect(() => {
-    getActiveSession().then((d) => {
-      if (d.session_id) setActiveSid(d.session_id);
-    }).catch(() => {});
+  // Load /auth/me on start; if token exists resolve to user, else stay guest.
+  const refreshUser = useCallback(() => {
+    if (!localStorage.getItem("token")) { setUser(null); return; }
+    fetchMe().then(u => {
+      if (u && u.id && u.id !== "u_default") setUser(u);
+      else setUser(null);
+    }).catch(() => setUser(null));
   }, []);
+  useEffect(() => { refreshUser(); }, [refreshUser]);
+
+  // Re-fetch active session whenever the current user changes so guest sessions
+  // do not leak into a logged-in user's dashboard.
+  useEffect(() => {
+    setActiveSid(null);
+    getActiveSession().then((d) => {
+      if (d && d.session_id) setActiveSid(d.session_id);
+    }).catch(() => {});
+  }, [user?.id]);
 
   const handleUpload = useCallback(async (file: File) => {
     const res = await uploadQuestion(file);
@@ -42,20 +57,15 @@ export default function App() {
 
   const handleLogin = (token: string) => {
     localStorage.setItem('token', token);
-    fetch('/api/v1/auth/me', { headers: {'Authorization': 'Bearer ' + token} })
-      .then(r => r.json()).then(d => setUser(d));
+    refreshUser();
     setPage('dashboard');
   };
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    setUser(null); setPage('dashboard');
+    logout();
+    setUser(null);
+    setPage('dashboard');
   };
-  useEffect(() => {
-    const t = localStorage.getItem('token');
-    if (t) fetch('/api/v1/auth/me', {headers:{'Authorization':'Bearer '+t}}).then(r=>r.json()).then(d=>setUser(d)).catch(()=>{});
-  }, []);
-  const [user, setUser] = useState<any>(null);
-  const [uploading, setUploading] = useState(false);
+
   const handleConfirm = useCallback((qid: string) => {
     setSelectedQid(qid);
     setPage("tutor");
@@ -63,16 +73,16 @@ export default function App() {
   const nav = [
     { id: "dashboard" as Page, label: "首页" },
     { id: "upload" as Page, label: "入库" },
-    { id: "knowmap" as Page, label: "图谱" },{ id: "settings" as Page, label: "设置" },{ id: "login" as Page, label: typeof user !== "undefined" && user ? user.name : "登录" },
+    { id: "knowmap" as Page, label: "图谱" },
+    { id: "settings" as Page, label: "设置" },
+    { id: "login" as Page, label: user ? user.name : "登录" },
   ];
 
   return (
     <div className="app-shell" style={{ maxWidth: 960, margin: "0 auto", padding: "20px 24px", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <header className="app-header" style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", alignItems: "center", marginBottom: 20, gap: 16 }}>
-        {/* 文星 badge */}
         <WenXingLogo />
 
-        {/* Center title */}
         <div className="app-title" style={{ textAlign: "center" }}>
           <div className="app-title-line" style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 10 }}>
             <span className="app-title-cn" style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: 1 }}>数智学堂</span>
@@ -83,17 +93,21 @@ export default function App() {
           </div>
         </div>
 
-        {/* Nav + grade switcher */}
         <div className="app-actions" style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
-          <nav className="app-nav" style={{ display: "flex", gap: 6 }}>
+          <nav className="app-nav" style={{ display: "flex", gap: 6, alignItems: "center" }}>
             {nav.map((n) => (
               <button key={n.id} onClick={() => { setPage(n.id); }}
                 style={{ padding: "8px 18px", border: "none", borderRadius: "var(--radius-sm)", cursor: "pointer", fontSize: 13, fontWeight: page === n.id ? 600 : 400, background: page === n.id ? "var(--brand)" : "transparent", color: page === n.id ? "#fff" : "var(--text-secondary)", transition: "all 0.15s" }}>
                 {n.label}
               </button>
             ))}
+            {user && (
+              <button onClick={handleLogout} title="退出登录"
+                style={{ padding: "6px 10px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", cursor: "pointer", fontSize: 12, background: "transparent", color: "var(--text-secondary)" }}>
+                退出
+              </button>
+            )}
           </nav>
-          {/* Grade toggle */}
           <div className="grade-toggle" style={{ display: "flex", borderRadius: 6, overflow: "hidden", border: "1px solid var(--border)" }}>
             {(["初中", "高中"] as Grade[]).map((g) => (
               <button key={g} onClick={() => setGrade(g)}
@@ -107,6 +121,13 @@ export default function App() {
 
       <div style={{ height: 1, background: "linear-gradient(90deg, transparent, var(--border) 20%, var(--border) 80%, transparent)", marginBottom: 24 }} />
 
+      {!user && (
+        <div onClick={() => setPage("login")} style={{ padding: "10px 16px", background: "rgba(234, 179, 8, 0.08)", borderRadius: "var(--radius)", marginBottom: 16, fontSize: 13, cursor: "pointer", color: "#a16207", display: "flex", alignItems: "center", gap: 8, border: "1px solid rgba(234, 179, 8, 0.2)" }}>
+          <span style={{ fontSize: 16 }}>ⓘ</span>
+          当前为<strong style={{ margin: "0 4px" }}>游客模式</strong>，数据不区分身份。<u style={{ marginLeft: 4 }}>点击登录</u>以把错题、导学与复习绑到自己的账号。
+        </div>
+      )}
+
       {activeSid && page !== "tutor" && (
         <div onClick={() => setPage("tutor")} style={{ padding: "10px 16px", background: "var(--brand-bg)", borderRadius: "var(--radius)", marginBottom: 16, fontSize: 13, cursor: "pointer", color: "var(--brand)", display: "flex", alignItems: "center", gap: 8, border: "1px solid rgba(30,64,175,0.1)" }}>
           <span style={{ fontSize: 16 }}>▶</span> 有未完成的学习，点击继续
@@ -116,7 +137,9 @@ export default function App() {
       <main style={{ flex: 1, animation: "fadeIn 0.2s ease" }}>
         {page === "dashboard" && <DashboardPage onSelectQuestion={handleSelect} onNavigate={setPage} onSelectWeakPoint={handleWeakPointSelect} />}
         {page === "upload" && <ImageUpload grade={grade} onImage={handleUpload} loading={uploading} onConfirm={handleConfirm} />}
-        {page === "knowmap" && <KnowMapPage grade={grade} focusWeakPoint={focusedWeakPoint} onSelectQuestion={handleSelect} />}{page === "login" && <LoginPage onLogin={handleLogin} />}{page === "settings" && <SettingsPage />}
+        {page === "knowmap" && <KnowMapPage grade={grade} focusWeakPoint={focusedWeakPoint} onSelectQuestion={handleSelect} />}
+        {page === "login" && <LoginPage onLogin={handleLogin} />}
+        {page === "settings" && <SettingsPage />}
         {page === "tutor" && selectedQid && <TutorPage questionId={selectedQid} onSelectQuestion={handleSelect} />}
       </main>
 

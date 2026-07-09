@@ -1,5 +1,30 @@
 const BASE = "/api/v1";
 
+function authHeader(): Record<string, string> {
+  const t = typeof localStorage !== "undefined" ? localStorage.getItem("token") : null;
+  return t ? { Authorization: "Bearer " + t } : {};
+}
+
+type Init = RequestInit & { json?: unknown };
+
+async function apiFetch(path: string, init: Init = {}): Promise<Response> {
+  const { json, headers, ...rest } = init;
+  const h: Record<string, string> = { ...(headers as Record<string, string> | undefined), ...authHeader() };
+  const body = json !== undefined ? JSON.stringify(json) : rest.body;
+  if (json !== undefined && !h["Content-Type"]) h["Content-Type"] = "application/json";
+  const r = await fetch(`${BASE}${path}`, { ...rest, body, headers: h });
+  if (r.status === 401 && typeof localStorage !== "undefined") {
+    // Token expired or invalid: drop it so caller reverts to guest mode.
+    localStorage.removeItem("token");
+  }
+  return r;
+}
+
+async function apiJson<T>(path: string, init: Init = {}): Promise<T> {
+  const r = await apiFetch(path, init);
+  return r.json() as Promise<T>;
+}
+
 export interface AnalysisResult {
   success: boolean;
   source?: string;
@@ -33,28 +58,51 @@ export interface ConfirmPayload {
   needs_human_review: boolean;
 }
 
+export interface AuthUser {
+  id: string;
+  name: string;
+  role: string;
+  school_level: string;
+}
+
+export async function login(username: string, password: string): Promise<{ token: string; user: AuthUser }> {
+  const r = await apiFetch("/auth/login", { method: "POST", json: { username, password } });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.detail || "登录失败");
+  return d;
+}
+
+export async function fetchMe(): Promise<AuthUser> {
+  return apiJson<AuthUser>("/auth/me");
+}
+
+export function isLoggedIn(): boolean {
+  return typeof localStorage !== "undefined" && !!localStorage.getItem("token");
+}
+
+export function logout() {
+  if (typeof localStorage !== "undefined") localStorage.removeItem("token");
+}
+
 export async function getKnowMapSummary(grade?: string) {
   const params = grade ? `?grade=${encodeURIComponent(grade)}` : "";
-  const r = await fetch(`${BASE}/knowmap/summary${params}`);
-  return r.json();
+  return apiJson<any>(`/knowmap/summary${params}`);
 }
 
 export async function getKnowMapTree(grade?: string) {
   const params = grade ? `?grade=${encodeURIComponent(grade)}` : "";
-  const r = await fetch(`${BASE}/knowmap/tree${params}`);
-  return r.json();
+  return apiJson<any>(`/knowmap/tree${params}`);
 }
 
 export async function getNodeQuestions(nodeId: string, grade?: string) {
   const params = grade ? `?grade=${encodeURIComponent(grade)}` : "";
-  const r = await fetch(`${BASE}/knowmap/nodes/${nodeId}/questions${params}`);
-  return r.json();
+  return apiJson<any>(`/knowmap/nodes/${nodeId}/questions${params}`);
 }
 
 export async function analyzeQuestion(files: File[], signal?: AbortSignal) {
   const fd = new FormData();
   files.forEach(f => fd.append("image", f));
-  const r = await fetch(`${BASE}/questions/analyze`, { method: "POST", body: fd, signal });
+  const r = await apiFetch(`/questions/analyze`, { method: "POST", body: fd, signal });
   if (!r.ok) {
     throw new Error(`analyze HTTP ${r.status}`);
   }
@@ -62,18 +110,13 @@ export async function analyzeQuestion(files: File[], signal?: AbortSignal) {
 }
 
 export async function getOcrHealth(signal?: AbortSignal): Promise<{ status: string; message: string }> {
-  const r = await fetch(`${BASE}/health/ocr`, { signal });
+  const r = await apiFetch(`/health/ocr`, { signal });
   if (!r.ok) throw new Error(`ocr health ${r.status}`);
   return r.json();
 }
 
 export async function confirmQuestion(payload: ConfirmPayload) {
-  const r = await fetch(`${BASE}/questions/confirm`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  return r.json();
+  return apiJson<any>("/questions/confirm", { method: "POST", json: payload });
 }
 
 function payloadFromAnalysis(analyzed: AnalysisResult): ConfirmPayload {
@@ -107,11 +150,7 @@ export async function uploadMultiple(files: File[]) {
 }
 
 export async function createTutorSession(questionId: string) {
-  const r = await fetch(`${BASE}/tutor/session`, {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question_id: questionId }),
-  });
-  return r.json();
+  return apiJson<any>("/tutor/session", { method: "POST", json: { question_id: questionId } });
 }
 
 export interface TutorDiagnosticSummary {
@@ -136,47 +175,32 @@ export interface TutorMessageResult {
 }
 
 export async function sendTutorMessage(sessionId: string, message: string, intent = "answer") {
-  const r = await fetch(`${BASE}/tutor/message`, {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ session_id: sessionId, message, intent }),
+  return apiJson<TutorMessageResult>("/tutor/message", {
+    method: "POST",
+    json: { session_id: sessionId, message, intent },
   });
-  return r.json() as Promise<TutorMessageResult>;
 }
 
 export async function getActiveSession() {
-  const r = await fetch(`${BASE}/tutor/sessions/active`);
-  return r.json();
+  return apiJson<any>("/tutor/sessions/active");
 }
 
 export async function getDashboard() {
-  const r = await fetch(`${BASE}/learn/dashboard`);
-  return r.json();
+  return apiJson<any>("/learn/dashboard");
 }
 
 export async function getHistory() {
-  const r = await fetch(`${BASE}/learn/history`);
-  return r.json();
+  return apiJson<any>("/learn/history");
 }
 
 export async function getModelConfig() {
-  const r = await fetch(`${BASE}/settings/models`);
-  return r.json();
+  return apiJson<any>("/settings/models");
 }
 
 export async function saveModelConfig(config: any) {
-  const r = await fetch(`${BASE}/settings/models`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(config),
-  });
-  return r.json();
+  return apiJson<any>("/settings/models", { method: "PUT", json: config });
 }
 
 export async function testConnection(config: any) {
-  const r = await fetch(`${BASE}/settings/models/test`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(config),
-  });
-  return r.json();
+  return apiJson<any>("/settings/models/test", { method: "POST", json: config });
 }
