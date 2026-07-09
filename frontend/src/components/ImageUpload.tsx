@@ -110,12 +110,16 @@ export default function ImageUpload({ grade = "高中", onConfirm }: Props) {
 
     try {
       const d = await analyzeQuestion(files, controller.signal);
+      // AI 建议的图谱节点默认全部勾选 (P1-UX-KP-01):
+      // 大部分情况下 matcher 命中即正确, 让用户看到"已选"更快;
+      // 若不满意可以点标签上的 × 撤销.
+      const auto = Array.isArray(d.suggested_nodes) ? d.suggested_nodes.slice(0, 3) : [];
       setResult({
         ...d,
         key_insight: d.key_insight || "",
         final_answer: "",
         solution_text: "",
-        knowmap_nodes: [],
+        knowmap_nodes: auto,
       });
     } catch (err: unknown) {
       const aborted = err instanceof DOMException && err.name === "AbortError";
@@ -316,11 +320,11 @@ export default function ImageUpload({ grade = "高中", onConfirm }: Props) {
                   <div style={{ marginBottom: 10, padding: 10, border: "1px solid rgba(30,64,175,0.15)", background: "var(--brand-bg)", borderRadius: "var(--radius-sm)" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
                       <span style={{ fontSize: 12, fontWeight: 600, color: "var(--brand)" }}>
-                        🤖 AI 根据知识点建议 ({suggestedNodes.length})
+                        💡 还没被采用的建议 ({suggestedNodes.length})
                       </span>
                       <button type="button" onClick={addAllSuggested}
                         style={{ fontSize: 11, padding: "4px 10px", border: "1px solid var(--brand)", background: "var(--brand)", color: "#fff", borderRadius: 999, cursor: "pointer", fontWeight: 500 }}>
-                        全部添加
+                        追加全部
                       </button>
                     </div>
                     <div style={{ display: "grid", gap: 4 }}>
@@ -333,7 +337,7 @@ export default function ImageUpload({ grade = "高中", onConfirm }: Props) {
                       ))}
                     </div>
                     <p style={{ fontSize: 10, color: "var(--text-muted)", margin: "6px 0 0" }}>
-                      建议由 AI 从题目知识点匹配得到，仅供参考；找不到合适节点请在下方搜索或按教材浏览。
+                      默认已按 AI 匹配自动关联，可点击下方"×"撤销；未采用的候选如需追加，点即可添加。
                     </p>
                   </div>
                 )}
@@ -387,16 +391,25 @@ export default function ImageUpload({ grade = "高中", onConfirm }: Props) {
                   )}
                 </div>
               </div>
-              {selectedNodes.length > 0 && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-                  {selectedNodes.map(n => (
-                    <button key={n.id} type="button" onClick={() => removeNode(n.id)}
-                      title="点击移除"
-                      style={{ border: "1px solid rgba(30,64,175,0.15)", background: "var(--brand-bg)", color: "var(--brand)", borderRadius: 999, padding: "3px 9px", fontSize: 11, cursor: "pointer" }}>
-                      {n.name} ×
-                    </button>
-                  ))}
+              {selectedNodes.length > 0 ? (
+                <div style={{ marginTop: 8 }}>
+                  <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "0 0 4px" }}>
+                    已关联 {selectedNodes.length} 个节点(点标签 × 撤销):
+                  </p>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {selectedNodes.map(n => (
+                      <button key={n.id} type="button" onClick={() => removeNode(n.id)}
+                        title="点击移除"
+                        style={{ border: "1px solid rgba(30,64,175,0.15)", background: "var(--brand-bg)", color: "var(--brand)", borderRadius: 999, padding: "3px 9px", fontSize: 11, cursor: "pointer" }}>
+                        {n.name} ×
+                      </button>
+                    ))}
+                  </div>
                 </div>
+              ) : (
+                <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "8px 0 0" }}>
+                  尚未关联图谱节点。可在上方"还没被采用的建议"里追加,或用下方搜索/教材浏览手动挑选。
+                </p>
               )}
 
               <label style={{ ...labelStyle, marginTop: 10 }}>题眼 / 解题突破口</label>

@@ -288,6 +288,20 @@ async def confirm_question(data: ConfirmRequest, request: Request = None, db: DB
     qid = f"q_{uuid.uuid4().hex[:12]}"
     _, llm_config = _get_llm_config(uid)
 
+    # 兜底: 若前端没勾图谱节点但有知识点, 用 matcher 再挂一次 (P1-UX-KP-01).
+    # 这样即便用户跳过图谱区块直接入库, 后端也能给这道题绑上合适的节点.
+    if not data.knowmap_nodes and data.knowledge_points:
+        try:
+            data.knowmap_nodes = suggest_nodes(
+                data.knowledge_points, get_tree(""), limit=3
+            )
+            if data.knowmap_nodes:
+                logger.info(
+                    f"confirm auto-bound {len(data.knowmap_nodes)} nodes for {qid}: {data.knowmap_nodes}"
+                )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(f"confirm auto-bind failed: {exc}")
+
     steps = []
     final_answer = data.final_answer or ""
     method = ""
