@@ -1,4 +1,4 @@
-﻿import json, logging
+import json, logging
 import httpx
 
 logger = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ async def call_llm_with_config(prompt: str, config: dict, system: str = "") -> s
         "qwen": "https://dashscope.aliyuncs.com/compatible-mode/v1",
         "moonshot": "https://api.moonshot.cn/v1",
         "tencent": "https://api.hunyuan.cloud.tencent.com/v1",
-        "minimax": "https://api.minimax.chat/v1",
+        "minimax": "https://api.minimaxi.com/v1",
     }
     if not base_url:
         base_url = defaults.get(provider, "")

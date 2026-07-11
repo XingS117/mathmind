@@ -17,13 +17,13 @@ class ModelConfig(BaseModel):
 
 PROVIDER_MODELS = {
     "mock": {"models": ["mock"], "default_base_url": ""},
-    "deepseek": {"models": ["deepseek-chat", "deepseek-reasoner"], "default_base_url": "https://api.deepseek.com/v1"},
-    "openai": {"models": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4"], "default_base_url": "https://api.openai.com/v1"},
-    "gemini": {"models": ["gemini-2.0-flash", "gemini-2.0-pro"], "default_base_url": "https://generativelanguage.googleapis.com/v1beta"},
-    "qwen": {"models": ["qwen-plus", "qwen-turbo", "qwen-max"], "default_base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1"},
-    "moonshot": {"models": ["moonshot-v1-8k", "moonshot-v1-32k", "moonshot-v1-128k"], "default_base_url": "https://api.moonshot.cn/v1"},
+    "deepseek": {"models": ["deepseek-v4-pro", "deepseek-v4-flash", "deepseek-chat"], "default_base_url": "https://api.deepseek.com/v1"},
+    "openai": {"models": ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"], "default_base_url": "https://api.openai.com/v1"},
+    "gemini": {"models": ["gemini-3.5", "gemini-3.5-flash", "gemini-2.5-pro"], "default_base_url": "https://generativelanguage.googleapis.com/v1beta"},
+    "qwen": {"models": ["qwen3.7-max", "qwen3.6-plus", "qwen3.6-flash"], "default_base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1"},
+    "moonshot": {"models": ["kimi-latest", "kimi-k2.7-code", "moonshot-v1-128k"], "default_base_url": "https://api.moonshot.cn/v1"},
     "tencent": {"models": ["hunyuan-large", "hunyuan-pro", "hunyuan-standard", "hunyuan-lite"], "default_base_url": "https://api.hunyuan.cloud.tencent.com/v1"},
-    "minimax": {"models": ["MiniMax-M3", "MiniMax-M2.7", "MiniMax-M2.7-highspeed", "MiniMax-M2.5", "MiniMax-M2.5-highspeed", "MiniMax-M2.1", "MiniMax-M2.1-highspeed", "MiniMax-M2"], "default_base_url": "https://api.minimax.chat/v1"},
+    "minimax": {"models": ["MiniMax-M3", "MiniMax-M2.7", "MiniMax-M2.7-highspeed", "MiniMax-M2.5", "MiniMax-M2.5-highspeed", "MiniMax-M2.1", "MiniMax-M2.1-highspeed", "MiniMax-M2"], "default_base_url": "https://api.minimaxi.com/v1"},
 }
 
 @router.get("/settings/providers")
