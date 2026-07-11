@@ -2,8 +2,10 @@
 
 > 适用工作树：`D:\Sven\maths\.worktrees\real-question-baseline`
 > 适用分支：`feat/real-question-baseline`
-> 当前允许任务：已正式上线到 https://mathmind.xingshuwen.com/；UA 测试全部通过
-> 下一任务：按用户需要做 P2 增强 / 域名收尾 / 数据备份策略
+> Git HEAD（归档时刻）：`44d369a`
+> 当前里程碑：**Public Beta**（面向真实用户开放，第一位真实用户可从零建库）
+> 阶段归档：`MILESTONE_2026-07-11_public-beta.md`
+> 下一任务：等待真实用户测试反馈；若用户未提新需求，仅在明确授权下做 P2 收敛 / MiniMax Anthropic 兼容适配 / 腾讯混元清单更新 / admin 密码等运维收尾
 
 ## 项目价值
 
@@ -41,17 +43,18 @@ MVP 主闭环：
 
 产品口径以 `SPEC.md` v1.1 为准，最新执行进度以本文和 `PROJECT_STATUS.md` 的 Git 证据为准。发现实质性冲突时立即停止并报告用户，不得自行改变产品方案。
 
-## 当前断点
+## 当前断点（Public Beta 归档时刻）
 
-- 已完成正式上线：**https://mathmind.xingshuwen.com/**（腾讯云 Ubuntu 24.04，nginx + Let's Encrypt HTTPS + systemd 守护）。
-- 后端：`mathmind.service` 挂 `uvicorn 127.0.0.1:8100`；前端 `frontend/dist` 由 backend 单端口托管；LLM key 从 `.env` 注入。
-- UA 测试（`docs/quality/ua-2026-07-09.md`）：5 大项全通过，含真实 OCR + LLM + tutor 端到端；OCR 冷启单张 <25s，LLM confirm 约 14s。
-- 任务 1..10 已完成：5 题（RQ-01..RQ-05）验收全部通过，无 P0 遗留；修复包 A 已闭环 15 条 P0/P1。
-- 5 题得分：RQ-01 80、RQ-02 90、RQ-03 90、RQ-04 90、RQ-05 90；均 `solution_confidence=high`；0 对时 `mastery_update=0.0`。
-- 遗留 3 类 P2 均为计划外增强项：`CONTENT-02`（LLM 未强制化简）、`DIAGRAM-01`（无 diagram_json）、`VERIFY-01`（未强制标记原标答矛盾）。
-- 最终验证：backend 67 pass / knowmap 11 pass / tsc 0 error / `npm run build` 通过（39 modules，255.56 KB）。
-- `rg -n "not_run|基线尚未执行" docs/quality` 无输出。
-- 当前分支最新提交必须通过 `git rev-parse --short HEAD` 获取。
+- Git HEAD：`44d369a`；分支 `feat/real-question-baseline`；未 push、未合并
+- 生产：<https://mathmind.xingshuwen.com/>（腾讯云 Ubuntu 24.04，nginx + Let's Encrypt HTTPS + systemd）
+- 后端：`mathmind.service` 挂 `uvicorn 127.0.0.1:8100`；前端 `frontend/dist` 由 backend 单端口托管；LLM key 从 `.env` 注入
+- **Public Beta 判定通过**：demo 数据已清空、高中图谱已切人教 B 版、知识点可自动挂图谱节点、7 家模型清单已按官网更新——真实用户可以从零开始建自己的错题库
+- 前两次里程碑证据：`docs/quality/real-question-baseline-2026-06-27.md`（5 题基线）+ `docs/quality/ua-2026-07-09.md`（正式上线 UA 全通）
+- 本阶段完整归档：`docs/MILESTONE_2026-07-11_public-beta.md`
+- 遗留 P2：`CONTENT-02` / `DIAGRAM-01` / `VERIFY-01`（均计划外增强项，不阻塞使用）
+- 已知非闭环项（如需推进要用户明确授权，见归档 § 5）：MiniMax Anthropic 协议适配、腾讯混元模型清单更新、admin 默认密码 `admin123`、db 定期备份脚本、Chrome DevTools 布局最终核对
+- 已知未跟踪：`data/*.pre_bban.bak`（B 版切换前的三份备份，被 `.gitignore` 匹配之外的路径命中，建议保留在本地磁盘不入库）
+- 当前分支最新提交必须通过 `git rev-parse --short HEAD` 核对，不要以文档中的 hash 为准
 
 ## 部署方式（已实现）
 
@@ -80,13 +83,14 @@ powershell -ExecutionPolicy Bypass -File scripts\serve.ps1   # 启动生产服�
 
 ## 当前只允许解决的问题
 
-线下功能全部闭环，仅剩以下方向可开工：
+Public Beta 已上线，主闭环功能全部闭环。当前只能被动响应用户测试反馈：
 
-1. 按用户对"部署前待用户确认的事项"的回答，编写部署脚本 / Dockerfile / systemd unit / nginx 配置。
-2. 若用户要求做 P2 收敛：`CONTENT-02` 化简、`DIAGRAM-01` 结构化图形、`VERIFY-01` 原标答矛盾标注，任选其一按 TDD 推进。
-3. 若用户要求 UX 复核：Chrome DevTools 桌面 1440×900 + 移动 390×844 手动跑一遍并回填证据。
+1. **用户实测反馈修复**（最高优先级）：用户在生产 URL 上撞到的问题，按最小改动原则修复，改代码前先复现、有测试才合并
+2. **P2 收敛**（需用户明确授权）：`CONTENT-02` 化简 / `DIAGRAM-01` 结构化图形 / `VERIFY-01` 原标答矛盾标注，任选其一按 TDD 推进
+3. **模型协议适配**（需用户明确授权）：MiniMax M 系列 Anthropic 兼容适配器；腾讯混元清单更新（需用户提供静态可访问的官方文档 URL）
+4. **运维收尾**（需用户明确授权）：admin 默认密码修改、db 定期备份脚本、Chrome DevTools 桌面 1440×900 + 移动 390×844 布局核对
 
-未经用户回复不得选择方向。
+未经用户明确授权不得自行开工，也不得把 4 个方向合成一个任务打包。
 
 ## 单任务执行协议
 

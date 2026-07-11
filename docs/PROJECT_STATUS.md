@@ -1,8 +1,10 @@
 # 数智学堂项目进度与接续记录
 
-> 快照日期：2026-07-09（修复包 A 完成 + 5 题基线闭环）
+> 快照日期：2026-07-11（Public Beta · 面向真实用户可用）
+> Git HEAD：`44d369a`（分支 `feat/real-question-baseline`）
 > 对应方案：v1.1
-> 当前状态：**已正式上线 https://mathmind.xingshuwen.com/**（腾讯云 Ubuntu + nginx + Let's Encrypt + systemd）；UA 测试 5 大项全通过
+> 当前状态：**已进入公开测试期 https://mathmind.xingshuwen.com/**；demo 数据已清空，第一位真实用户可从零建库；高中图谱已切人教 B 版；知识点自动挂节点；7 家模型清单已按官网更新
+> 阶段归档：[`MILESTONE_2026-07-11_public-beta.md`](MILESTONE_2026-07-11_public-beta.md)
 > 用途：供后续 Session、Agent 或开发者快速恢复上下文
 
 ## 1. 权威文档
@@ -18,15 +20,24 @@
 
 ## 1.1 当前执行快照
 
-当前正在执行“真实复杂题验收基线”计划：
+已完成"真实复杂题验收基线"计划全部任务，且完成 Public Beta 里程碑：
 
 - **工作树：** `D:\Sven\maths\.worktrees\real-question-baseline`
 - **分支：** `feat/real-question-baseline`
-- **已完成任务：** 任务 1..10 全部完成，且**已完成正式部署上线**；UA 测试见 `docs/quality/ua-2026-07-09.md`；运维见 `docs/DEPLOYMENT-live.md`
-- **分支最新提交：** 运行 `git rev-parse --short HEAD` 获取；交接时以 Git 输出为准，不把文档提交号当作代码基线。
-- **执行计划：** [`superpowers/plans/2026-06-27-real-question-acceptance-baseline.md`](superpowers/plans/2026-06-27-real-question-acceptance-baseline.md)
-- **运行状态：** 前后端服务已启动，`5173` 与 `8000` 均在监听；任务 5 完成后可自行停机。
-- **本地数据：** 主目录数据库已复制到工作树，副本被 Git 忽略；后续验收不会修改主目录数据库。
+- **Git HEAD：** `44d369a`（后续以 `git rev-parse --short HEAD` 为准）
+- **里程碑演进：** Alpha 5 题基线 → Beta 上线 → **Public Beta（当前）**
+- **本阶段归档：** [`MILESTONE_2026-07-11_public-beta.md`](MILESTONE_2026-07-11_public-beta.md)
+- **验收执行计划：** [`superpowers/plans/2026-06-27-real-question-acceptance-baseline.md`](superpowers/plans/2026-06-27-real-question-acceptance-baseline.md)
+- **本地数据：** 工作树 db 副本被 Git 忽略；`.pre_*.bak` 保留了 B 版切换前的图谱与题库快照
+
+Public Beta 阶段新增沉淀（`647ac0b..44d369a` 9 个提交，核心 4 件事）：
+
+1. 高中图谱切人教 B 版（`d9507df` + `7fe2dab`）
+2. demo 数据清空 + 新用户从零开始（`ddad385`）
+3. 知识点自动挂图谱节点（`1836884`）
+4. 7 家模型清单按官网更新 + MiniMax base_url 修正（`1acd50a` + `44d369a`）
+
+（登录 + 数据隔离、正式部署、Windows 单机方案属 Beta 上线阶段成果，见 `docs/quality/ua-2026-07-09.md` UA-06 与 `docs/DEPLOYMENT-live.md`。）
 
 任务进度：
 
