@@ -23,7 +23,7 @@ PROVIDER_MODELS = {
     "qwen": {"models": ["qwen-plus", "qwen-turbo", "qwen-max"], "default_base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1"},
     "moonshot": {"models": ["moonshot-v1-8k", "moonshot-v1-32k", "moonshot-v1-128k"], "default_base_url": "https://api.moonshot.cn/v1"},
     "tencent": {"models": ["hunyuan-large", "hunyuan-pro", "hunyuan-standard", "hunyuan-lite"], "default_base_url": "https://api.hunyuan.cloud.tencent.com/v1"},
-    "minimax": {"models": ["minimax-01", "abab-6.5s", "abab-5.5s"], "default_base_url": "https://api.minimax.chat/v1"},
+    "minimax": {"models": ["MiniMax-M3", "MiniMax-M2.7", "MiniMax-M2.7-highspeed", "MiniMax-M2.5", "MiniMax-M2.5-highspeed", "MiniMax-M2.1", "MiniMax-M2.1-highspeed", "MiniMax-M2"], "default_base_url": "https://api.minimax.chat/v1"},
 }
 
 @router.get("/settings/providers")
