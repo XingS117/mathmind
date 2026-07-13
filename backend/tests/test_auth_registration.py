@@ -4,18 +4,23 @@ import os
 import tempfile
 import unittest
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import patch
 
 from sqlalchemy import create_engine, text
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session as SQLAlchemySession, sessionmaker
 from fastapi.testclient import TestClient
 
 import backend.database as database
+from backend.database import Base
 from backend.main import app
+from backend.routers import auth as auth_router
 from backend.models.operations import LoginEvent
 from backend.models.user import User
 from backend.services.auth_service import hash_password, needs_password_upgrade, verify_password
 from backend.services.operations_service import fingerprint_ip
-from backend.services.rate_limit_service import rate_limiter
+from backend.services.rate_limit_service import SlidingWindowRateLimiter, rate_limiter
 
 
 def legacy_hash(password: str) -> str:
@@ -77,7 +82,22 @@ class PublicAuthFlowTest(unittest.TestCase):
     marker = "auth-test-"
 
     def setUp(self):
-        self.client = TestClient(app)
+        self.real_db_hash = self._file_hash(database.DB_PATH)
+        with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as handle:
+            self.db_path = handle.name
+        self.engine = create_engine(f"sqlite:///{self.db_path}", connect_args={"check_same_thread": False})
+        Base.metadata.create_all(self.engine)
+        self.SessionLocal = sessionmaker(bind=self.engine)
+
+        def override_get_db():
+            db = self.SessionLocal()
+            try:
+                yield db
+            finally:
+                db.close()
+
+        app.dependency_overrides[auth_router.get_db] = override_get_db
+        self.client = TestClient(app, raise_server_exceptions=False)
         rate_limiter._attempts.clear()
         self.username = f"{self.marker}{uuid.uuid4().hex[:16]}"
         self.password = "password-123"
@@ -85,17 +105,18 @@ class PublicAuthFlowTest(unittest.TestCase):
         self.headers = {"X-Forwarded-For": self.test_ip, "User-Agent": "AuthTest/1.0"}
 
     def tearDown(self):
-        db = database.SessionLocal()
         try:
-            user_ids = [row[0] for row in db.query(User.id).filter(User.username.like(f"{self.marker}%")).all()]
-            if user_ids:
-                db.query(LoginEvent).filter(LoginEvent.user_id.in_(user_ids)).delete(synchronize_session=False)
-            db.query(LoginEvent).filter(LoginEvent.ip_fingerprint == fingerprint_ip(self.test_ip)).delete(synchronize_session=False)
-            db.query(LoginEvent).filter(LoginEvent.ip_fingerprint == fingerprint_ip("127.0.0.1")).delete(synchronize_session=False)
-            db.query(User).filter(User.username.like(f"{self.marker}%")).delete(synchronize_session=False)
-            db.commit()
+            app.dependency_overrides.pop(auth_router.get_db, None)
+            self.engine.dispose()
+            os.unlink(self.db_path)
+            self.assertEqual(self.real_db_hash, self._file_hash(database.DB_PATH))
         finally:
-            db.close()
+            rate_limiter._attempts.clear()
+
+    @staticmethod
+    def _file_hash(path):
+        with open(path, "rb") as handle:
+            return hashlib.sha256(handle.read()).hexdigest()
 
     def register(self, username=None, password=None, name="注册测试用户"):
         return self.client.post(
@@ -137,9 +158,29 @@ class PublicAuthFlowTest(unittest.TestCase):
         self.assertEqual(wrong_password.status_code, 401)
         self.assertEqual(unknown.json()["detail"], wrong_password.json()["detail"])
 
+    def test_unknown_and_known_bad_login_both_verify_password_once(self):
+        self.assertEqual(self.register().status_code, 201)
+        with patch("backend.routers.auth.verify_password", wraps=auth_router.verify_password) as verifier:
+            unknown = self.client.post(
+                "/api/v1/auth/login", json={"username": f"{self.marker}missing", "password": self.password}, headers=self.headers
+            )
+            self.assertEqual(unknown.status_code, 401)
+            self.assertEqual(verifier.call_count, 1)
+            verifier.reset_mock()
+            known = self.client.post(
+                "/api/v1/auth/login", json={"username": self.username, "password": "wrong-password"}, headers=self.headers
+            )
+            self.assertEqual(known.status_code, 401)
+            self.assertEqual(verifier.call_count, 1)
+
+    def test_registration_integrity_conflict_returns_409(self):
+        with patch.object(SQLAlchemySession, "commit", side_effect=IntegrityError("insert", {}, Exception())):
+            response = self.register()
+        self.assertEqual(response.status_code, 409)
+
     def test_disabled_user_cannot_log_in(self):
         self.assertEqual(self.register().status_code, 201)
-        db = database.SessionLocal()
+        db = self.SessionLocal()
         try:
             db.query(User).filter(User.username == self.username).update({User.is_active: False})
             db.commit()
@@ -184,7 +225,7 @@ class PublicAuthFlowTest(unittest.TestCase):
         self.client.post(
             "/api/v1/auth/login", json={"username": self.username, "password": self.password}, headers=self.headers
         )
-        db = database.SessionLocal()
+        db = self.SessionLocal()
         try:
             user = db.query(User).filter(User.username == self.username).one()
             event = db.query(LoginEvent).filter(LoginEvent.user_id == user.id).order_by(LoginEvent.occurred_at.desc()).first()
@@ -201,7 +242,7 @@ class PublicAuthFlowTest(unittest.TestCase):
             self.client.post(
                 "/api/v1/auth/login", json={"username": self.username, "password": self.password}, headers=self.headers
             )
-        db = database.SessionLocal()
+        db = self.SessionLocal()
         try:
             user = db.query(User).filter(User.username == self.username).one()
             event = db.query(LoginEvent).filter(LoginEvent.user_id == user.id).one()
@@ -217,7 +258,7 @@ class PublicAuthFlowTest(unittest.TestCase):
             self.client.post(
                 "/api/v1/auth/login", json={"username": self.username, "password": self.password}, headers=headers
             )
-        db = database.SessionLocal()
+        db = self.SessionLocal()
         try:
             user = db.query(User).filter(User.username == self.username).one()
             event = db.query(LoginEvent).filter(LoginEvent.user_id == user.id).one()
@@ -226,6 +267,24 @@ class PublicAuthFlowTest(unittest.TestCase):
             self.assertNotEqual(event.ip_fingerprint, fingerprint_ip("10.0.0.1"))
         finally:
             db.close()
+
+
+class RateLimitServiceTest(unittest.TestCase):
+    def test_concurrent_calls_do_not_exceed_limit(self):
+        limiter = SlidingWindowRateLimiter()
+        with ThreadPoolExecutor(max_workers=20) as executor:
+            results = list(executor.map(lambda _: limiter.allow("same-ip", "login", 5), range(100)))
+        self.assertEqual(sum(results), 5)
+
+    def test_expired_keys_are_swept_and_tracking_is_bounded(self):
+        limiter = SlidingWindowRateLimiter()
+        with patch("backend.services.rate_limit_service.time.monotonic", return_value=0):
+            for index in range(10050):
+                limiter.allow(f"expired-{index}", "register", 1)
+        self.assertLessEqual(len(limiter._attempts), 10000)
+        with patch("backend.services.rate_limit_service.time.monotonic", return_value=301):
+            limiter.allow("fresh", "register", 1)
+        self.assertEqual(len(limiter._attempts), 1)
 
 
 class OperationsSecurityTest(unittest.TestCase):

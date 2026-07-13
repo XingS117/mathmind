@@ -4,6 +4,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, validator
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session as DBSession
 from backend.database import get_db
 from backend.models.user import User
@@ -13,6 +14,7 @@ from backend.services.rate_limit_service import rate_limiter
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["auth"])
+DUMMY_PASSWORD_HASH = hash_password("invalid-password-placeholder")
 
 class LoginRequest(BaseModel):
     username: str
@@ -69,7 +71,11 @@ def register(req: RegisterRequest, request: Request, db: DBSession = Depends(get
         name=req.name, role="user", school_level="高中", is_active=True,
     )
     db.add(user)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(409, "用户名已存在")
     return {"user": {"id": user.id, "name": user.name, "role": user.role, "school_level": user.school_level}}
 
 
@@ -77,6 +83,7 @@ def register(req: RegisterRequest, request: Request, db: DBSession = Depends(get
 def login(req: LoginRequest, request: Request, db: DBSession = Depends(get_db)):
     user = db.query(User).filter(User.username == req.username).first()
     if not user or not user.password_hash:
+        verify_password(req.password, DUMMY_PASSWORD_HASH)
         _reject_login(db, request, "failed")
     if not verify_password(req.password, user.password_hash):
         _reject_login(db, request, "failed", user.id)

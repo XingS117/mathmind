@@ -10,6 +10,8 @@ from sqlalchemy.orm import Session
 from backend.models.operations import LoginEvent
 
 
+# The random development fallback changes at process restart. Production deployment
+# must configure MATHMIND_IP_HASH_SECRET when cross-restart correlation is required.
 _IP_FINGERPRINT_SECRET = os.getenv("MATHMIND_IP_HASH_SECRET") or secrets.token_hex(32)
 
 

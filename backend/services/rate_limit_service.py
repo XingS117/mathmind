@@ -1,5 +1,9 @@
 import time
 from collections import defaultdict, deque
+from threading import Lock
+
+
+MAX_TRACKED_KEYS = 10000
 
 
 class SlidingWindowRateLimiter:
@@ -7,17 +11,36 @@ class SlidingWindowRateLimiter:
 
     def __init__(self):
         self._attempts = defaultdict(deque)
+        self._lock = Lock()
+        self._last_sweep_at = None
 
     def allow(self, key: str, bucket: str, limit: int, window_seconds: int = 300) -> bool:
         now = time.monotonic()
-        attempts = self._attempts[(bucket, key)]
+        composite_key = (bucket, key)
+        with self._lock:
+            if self._last_sweep_at != now:
+                self._remove_expired(now, window_seconds)
+                self._last_sweep_at = now
+            if composite_key not in self._attempts:
+                self._make_room()
+            attempts = self._attempts[composite_key]
+            if len(attempts) >= limit:
+                return False
+            attempts.append(now)
+            return True
+
+    def _remove_expired(self, now: float, window_seconds: int) -> None:
         cutoff = now - window_seconds
-        while attempts and attempts[0] <= cutoff:
-            attempts.popleft()
-        if len(attempts) >= limit:
-            return False
-        attempts.append(now)
-        return True
+        for composite_key, attempts in list(self._attempts.items()):
+            while attempts and attempts[0] <= cutoff:
+                attempts.popleft()
+            if not attempts:
+                del self._attempts[composite_key]
+
+    def _make_room(self) -> None:
+        while len(self._attempts) >= MAX_TRACKED_KEYS:
+            oldest_key = min(self._attempts, key=lambda item: self._attempts[item][0])
+            del self._attempts[oldest_key]
 
 
 rate_limiter = SlidingWindowRateLimiter()
