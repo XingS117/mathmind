@@ -80,10 +80,10 @@ Register-ScheduledTask -TaskName "MathMind" -Action $action -Trigger $trigger -R
 
 ## 数据库
 
-- 位置：`mathmind.db`（SQLite，工作树根目录）
+- 位置：`data\mathmind.db`（SQLite，工作树根目录下的 `data` 目录）
 - 备份：直接复制这个文件即可。
 - 出问题时：删除后重启会自动 seed（会丢历史）；建议先备份。
-- 目前 `mathmind.db` 已含若干开发测试题与复习记录；如需干净上线：备份后 `Remove-Item mathmind.db`，重启 backend。
+- 目前 `data\mathmind.db` 已含若干开发测试题与复习记录；如需干净上线：备份后 `Remove-Item data\mathmind.db`，重启 backend。
 
 ## 端口 / 反代 / HTTPS（可选）
 

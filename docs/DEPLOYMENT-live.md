@@ -19,13 +19,13 @@
     ├── backend/           # FastAPI 后端
     ├── frontend/dist/     # 前端产物（backend 直接 serve）
     ├── data/
+    │   └── mathmind.db   # SQLite（首次启动 seed）
     ├── docs/
     ├── scripts/
     ├── tools/
     ├── requirements.txt
     ├── .venv/             # Python 3.12 venv
-    ├── .env               # 生产环境变量（chmod 600，未入库）
-    └── mathmind.db        # SQLite（首次启动 seed）
+    └── .env               # 生产环境变量（chmod 600，未入库）
 ```
 
 ## systemd
