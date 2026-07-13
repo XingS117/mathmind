@@ -1,3 +1,4 @@
+import json
 import os
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
@@ -81,7 +82,7 @@ def _ensure_mastery_indexes():
     with engine.begin() as conn:
         rows = conn.execute(text("""
             SELECT id, user_id, node_id, score, total_sessions, correct_sessions,
-                   variant_passed, last_reviewed
+                   variant_passed, last_reviewed, manual_adjustments
             FROM mastery
             ORDER BY user_id, node_id, id
         """)).mappings().all()
@@ -97,13 +98,24 @@ def _ensure_mastery_indexes():
                 key=str,
                 default=None,
             )
+            manual_adjustments = []
+            for row in duplicates:
+                value = row["manual_adjustments"]
+                if isinstance(value, str):
+                    try:
+                        value = json.loads(value)
+                    except json.JSONDecodeError:
+                        value = []
+                if isinstance(value, list):
+                    manual_adjustments.extend(value)
             conn.execute(text("""
                 UPDATE mastery
                 SET score = :score,
                     total_sessions = :total_sessions,
                     correct_sessions = :correct_sessions,
                     variant_passed = :variant_passed,
-                    last_reviewed = :last_reviewed
+                    last_reviewed = :last_reviewed,
+                    manual_adjustments = :manual_adjustments
                 WHERE id = :id
             """), {
                 "id": canonical["id"],
@@ -112,6 +124,7 @@ def _ensure_mastery_indexes():
                 "correct_sessions": sum(int(row["correct_sessions"] or 0) for row in duplicates),
                 "variant_passed": any(bool(row["variant_passed"]) for row in duplicates),
                 "last_reviewed": latest_reviewed,
+                "manual_adjustments": json.dumps(manual_adjustments, ensure_ascii=False),
             })
             for duplicate in extras:
                 conn.execute(text("DELETE FROM mastery WHERE id = :id"), {"id": duplicate["id"]})

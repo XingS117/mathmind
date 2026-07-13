@@ -316,10 +316,10 @@ class MasteryPersistenceTest(unittest.TestCase):
                     )
                 """))
                 conn.execute(text("""
-                    INSERT INTO mastery (id, user_id, node_id, score, total_sessions, correct_sessions, variant_passed, last_reviewed)
+                    INSERT INTO mastery (id, user_id, node_id, score, total_sessions, correct_sessions, variant_passed, last_reviewed, manual_adjustments)
                     VALUES
-                    ('m_a', 'u_legacy', 'node_legacy', 0.4, 2, 1, 0, '2026-01-01 00:00:00'),
-                    ('m_b', 'u_legacy', 'node_legacy', 0.8, 3, 2, 1, '2026-02-01 00:00:00')
+                    ('m_a', 'u_legacy', 'node_legacy', 0.4, 2, 1, 0, '2026-01-01 00:00:00', '[{"source":"first"}]'),
+                    ('m_b', 'u_legacy', 'node_legacy', 0.8, 3, 2, 1, '2026-02-01 00:00:00', '[{"source":"second"}]')
                 """))
 
             with patch("backend.database.engine", legacy_engine):
@@ -335,9 +335,72 @@ class MasteryPersistenceTest(unittest.TestCase):
             self.assertEqual(rows[0]["correct_sessions"], 3)
             self.assertTrue(rows[0]["variant_passed"])
             self.assertEqual(str(rows[0]["last_reviewed"]), "2026-02-01 00:00:00")
+            self.assertEqual(
+                json.loads(rows[0]["manual_adjustments"]),
+                [{"source": "first"}, {"source": "second"}],
+            )
             self.assertIn("uq_mastery_user_node", {row["name"] for row in indexes})
         finally:
             legacy_engine.dispose()
+            os.unlink(path)
+
+    def test_two_completed_sessions_update_one_mastery_node_concurrently(self):
+        fd, path = tempfile.mkstemp(suffix=".db")
+        os.close(fd)
+        engine = create_engine(f"sqlite:///{path}", connect_args={"check_same_thread": False})
+        factory = sessionmaker(bind=engine)
+        verify = None
+        try:
+            Base.metadata.create_all(engine)
+            setup = factory()
+            setup.add_all([
+                User(id="u_parallel", username="parallel", name="Student"),
+                Question(id="q_parallel_1", user_id="u_parallel", text="q1", knowmap_nodes=json.dumps(["node_a"])),
+                Question(id="q_parallel_2", user_id="u_parallel", text="q2", knowmap_nodes=json.dumps(["node_a"])),
+                Session(id="s_parallel_1", user_id="u_parallel", question_id="q_parallel_1", status="completed"),
+                Session(id="s_parallel_2", user_id="u_parallel", question_id="q_parallel_2", status="completed"),
+            ])
+            setup.commit()
+            setup.close()
+
+            barrier = threading.Barrier(2)
+            results, errors = [], []
+
+            def worker(question_id, session_id):
+                db = factory()
+                try:
+                    question = db.get(Question, question_id)
+                    session = db.get(Session, session_id)
+                    barrier.wait()
+                    result = apply_tutor_mastery(db, "u_parallel", question, session, 0.3)
+                    db.commit()
+                    results.append(result.applied)
+                except Exception as error:
+                    db.rollback()
+                    errors.append(error)
+                finally:
+                    db.close()
+
+            threads = [
+                threading.Thread(target=worker, args=("q_parallel_1", "s_parallel_1")),
+                threading.Thread(target=worker, args=("q_parallel_2", "s_parallel_2")),
+            ]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join()
+
+            verify = factory()
+            mastery = verify.query(Mastery).filter_by(user_id="u_parallel", node_id="node_a").one()
+            self.assertEqual(errors, [])
+            self.assertEqual(results.count(True), 2)
+            self.assertAlmostEqual(mastery.score, 0.6)
+            self.assertEqual(mastery.total_sessions, 2)
+            self.assertEqual(mastery.correct_sessions, 2)
+        finally:
+            if verify:
+                verify.close()
+            engine.dispose()
             os.unlink(path)
 
 
