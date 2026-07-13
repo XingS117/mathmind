@@ -35,7 +35,7 @@ def create_session(req: TutorSessionCreate, request: Request, db: DBSession = De
     steps = teaching.get("teachable_steps", []) if teaching else []
 
     db_session = Session(
-        id=session_id, user_id=get_user_id(request), question_id=req.question_id,
+        id=session_id, user_id=get_user_id(request, db=db), question_id=req.question_id,
         total_steps=len(steps), current_step=0,
         steps_json=json.dumps([{"step": s["step_number"], "status": "pending", "attempts": 0} for s in steps]),
         messages_json=json.dumps([]), hints_used=0, mistakes_json=json.dumps([])
@@ -62,6 +62,7 @@ def create_session(req: TutorSessionCreate, request: Request, db: DBSession = De
 
 @router.post("/tutor/message", response_model=TutorMessageResponse)
 def tutor_message(req: TutorMessageRequest, request: Request, db: DBSession = Depends(get_db)):
+    get_user_id(request, db=db)
     db_session = db.query(Session).filter(Session.id == req.session_id).first()
     if not db_session:
         raise HTTPException(404, "Session not found")
@@ -75,7 +76,7 @@ def tutor_message(req: TutorMessageRequest, request: Request, db: DBSession = De
 
     # If session completed, find variants (related questions)
     if result.get("type") == "complete" and question:
-        schedule_reviews(get_user_id(request), question.id, db)
+        schedule_reviews(get_user_id(request, db=db), question.id, db)
         nodes = _parse_json(question.knowmap_nodes)
         if nodes:
             related = db.query(Question).filter(
@@ -89,13 +90,14 @@ def tutor_message(req: TutorMessageRequest, request: Request, db: DBSession = De
 @router.get("/tutor/sessions/active")
 def get_active_session(request: Request, db: DBSession = Depends(get_db)):
     s = db.query(Session).filter(
-        Session.user_id == get_user_id(request), Session.status == "in_progress"
+        Session.user_id == get_user_id(request, db=db), Session.status == "in_progress"
     ).order_by(Session.last_active.desc()).first()
     if not s: return {"session_id": None}
     return {"session_id": s.id, "question_id": s.question_id}
 
 @router.get("/tutor/sessions/{session_id}")
-def get_session(session_id: str, db: DBSession = Depends(get_db)):
+def get_session(session_id: str, request: Request, db: DBSession = Depends(get_db)):
+    get_user_id(request, db=db)
     s = db.query(Session).filter(Session.id == session_id).first()
     if not s: raise HTTPException(404, "Session not found")
     return {"id": s.id, "question_id": s.question_id, "status": s.status,

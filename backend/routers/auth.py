@@ -107,7 +107,7 @@ def _reject_login(db: DBSession, request: Request, outcome: str, user_id: str | 
 
 @router.get("/auth/me")
 def get_me(request: Request, db: DBSession = Depends(get_db)):
-    uid = get_user_id(request)
+    uid = get_user_id(request, db=db)
     if uid == "u_default":
         return {"id": "u_default", "name": "游客", "role": "user", "school_level": "高中"}
     user = db.query(User).filter(User.id == uid).first()
@@ -118,7 +118,7 @@ def get_me(request: Request, db: DBSession = Depends(get_db)):
 
 @router.put("/auth/profile")
 def update_profile(req: UpdateProfileRequest, request: Request, db: DBSession = Depends(get_db)):
-    uid = get_user_id(request)
+    uid = get_user_id(request, db=db)
     if uid == "u_default":
         raise HTTPException(401, "请先登录")
     user = db.query(User).filter(User.id == uid).first()
@@ -130,7 +130,7 @@ def update_profile(req: UpdateProfileRequest, request: Request, db: DBSession = 
 
 @router.put("/auth/password")
 def change_password(req: ChangePasswordRequest, request: Request, db: DBSession = Depends(get_db)):
-    uid = get_user_id(request)
+    uid = get_user_id(request, db=db)
     if uid == "u_default":
         raise HTTPException(401, "请先登录")
     user = db.query(User).filter(User.id == uid).first()

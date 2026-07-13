@@ -17,7 +17,7 @@ REVIEW_TYPES = ["quick", "variant", "comprehensive", "final"]
 
 @router.get("/learn/reviews")
 def get_reviews(request: Request, db: DBSession = Depends(get_db)):
-    uid = get_user_id(request)
+    uid = get_user_id(request, db=db)
     now = datetime.utcnow()
     upcoming = db.query(ReviewSchedule).filter(
         ReviewSchedule.user_id == uid,
@@ -36,6 +36,7 @@ def get_reviews(request: Request, db: DBSession = Depends(get_db)):
 
 @router.post("/learn/reviews/{review_id}/complete")
 def complete_review(review_id: str, request: Request, db: DBSession = Depends(get_db)):
+    get_user_id(request, db=db)
     review = db.query(ReviewSchedule).filter(ReviewSchedule.id == review_id).first()
     if not review:
         return {"status": "error", "message": "Review not found"}

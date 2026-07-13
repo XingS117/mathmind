@@ -38,7 +38,7 @@ def get_providers():
 
 @router.get("/settings/models", response_model=ModelConfig)
 def get_model_config(request: Request, db: DBSession = Depends(get_db)):
-    uid = get_user_id(request)
+    uid = get_user_id(request, db=db)
     s = db.query(UserSettings).filter(UserSettings.user_id == uid).first()
     if not s:
         return ModelConfig()
@@ -46,7 +46,7 @@ def get_model_config(request: Request, db: DBSession = Depends(get_db)):
 
 @router.put("/settings/models", response_model=ModelConfig)
 def update_model_config(config: ModelConfig, request: Request, db: DBSession = Depends(get_db)):
-    uid = get_user_id(request)
+    uid = get_user_id(request, db=db)
     s = db.query(UserSettings).filter(UserSettings.user_id == uid).first()
     if not s:
         s = UserSettings(user_id=uid)
@@ -61,6 +61,7 @@ def update_model_config(config: ModelConfig, request: Request, db: DBSession = D
 
 @router.post("/settings/models/test")
 def test_connection(config: ModelConfig, request: Request, db: DBSession = Depends(get_db)):
+    get_user_id(request, db=db)
     if config.model_provider == "mock":
         return {"status": "ok", "message": "Mock 模式无需连接"}
     if not config.api_key:

@@ -86,6 +86,15 @@ class AuthScopedDataTest(unittest.TestCase):
         r_guest = self.client.get("/api/v1/auth/me").json()
         self.assertEqual(r_guest["id"], "u_default")
 
+    def test_inactive_user_token_is_rejected_from_business_and_profile_routes(self):
+        user = self.db.query(User).filter(User.id == self.uid).one()
+        user.is_active = False
+        self.db.commit()
+        headers = {"Authorization": f"Bearer {self.token}"}
+
+        self.assertEqual(self.client.get("/api/v1/learn/dashboard", headers=headers).status_code, 403)
+        self.assertEqual(self.client.put("/api/v1/auth/profile", json={"name": "Blocked"}, headers=headers).status_code, 403)
+
 
 if __name__ == "__main__":
     unittest.main()

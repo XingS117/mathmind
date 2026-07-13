@@ -197,14 +197,14 @@ def _get_llm_config(uid: str) -> tuple[bool, dict | None]:
 
 
 @router.post("/questions/analyze", response_model=QuestionAnalysisResponse)
-async def analyze_question(images: List[UploadFile] = File(alias="image"), request: Request = None):
+async def analyze_question(images: List[UploadFile] = File(alias="image"), request: Request = None, db: DBSession = Depends(get_db)):
     if not images:
         return JSONResponse(
             {"success": False, "error": "请选择至少一张图片", "suggestion": "点击或拖拽图片到上传区域"},
             status_code=400,
         )
 
-    uid = get_user_id(request) if request else "u_default"
+    uid = get_user_id(request, db=db) if request else "u_default"
     has_llm, llm_config = _get_llm_config(uid)
     raw_parts: list[str] = []
     source = "ocr"
@@ -311,7 +311,7 @@ async def analyze_question(images: List[UploadFile] = File(alias="image"), reque
 
 @router.post("/questions/confirm", response_model=QuestionConfirmResponse)
 async def confirm_question(data: ConfirmRequest, request: Request = None, db: DBSession = Depends(get_db)):
-    uid = get_user_id(request) if request else "u_default"
+    uid = get_user_id(request, db=db) if request else "u_default"
     qid = f"q_{uuid.uuid4().hex[:12]}"
     _, llm_config = _get_llm_config(uid)
 
@@ -438,6 +438,8 @@ async def confirm_question(data: ConfirmRequest, request: Request = None, db: DB
 
 @router.get("/questions/{qid}/status")
 def question_status(qid: str, request: Request = None, db: DBSession = Depends(get_db)):
+    if request:
+        get_user_id(request, db=db)
     q = db.query(Question).filter(Question.id == qid).first()
     if not q:
         raise HTTPException(404, "Question not found")

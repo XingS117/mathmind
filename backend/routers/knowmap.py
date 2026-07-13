@@ -26,7 +26,7 @@ def _visible_questions(request: Request, db: DBSession):
     For logged-in users this hides other users' uploads; guests only see
     u_default's own questions (which include seed data).
     """
-    uid = get_user_id(request)
+    uid = get_user_id(request, db=db)
     q = db.query(Question).filter(Question.status == "complete")
     if uid == "u_default":
         q = q.filter(Question.user_id == "u_default")

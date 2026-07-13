@@ -71,7 +71,7 @@ def _recent_diagnostic_weak_points(
 
 @router.get("/learn/dashboard", response_model=DashboardData)
 def dashboard(request: Request, db: DBSession = Depends(get_db)):
-    uid = get_user_id(request)
+    uid = get_user_id(request, db=db)
     q_count = db.query(Question).filter(Question.user_id == uid).count()
     s_count = db.query(Session).filter(Session.user_id == uid).count()
     avg = db.query(func.avg(Mastery.score)).filter(Mastery.user_id == uid).scalar() or 0
@@ -109,13 +109,13 @@ def dashboard(request: Request, db: DBSession = Depends(get_db)):
 
 @router.get("/learn/progress")
 def progress(request: Request, db: DBSession = Depends(get_db)):
-    records = db.query(Mastery).filter(Mastery.user_id == get_user_id(request)).all()
+    records = db.query(Mastery).filter(Mastery.user_id == get_user_id(request, db=db)).all()
     return {"mastery": [{"node_id": m.node_id, "score": m.score} for m in records]}
 
 @router.get("/learn/history")
 def history(request: Request, db: DBSession = Depends(get_db)):
     sessions = db.query(Session).filter(
-        Session.user_id == get_user_id(request)
+        Session.user_id == get_user_id(request, db=db)
     ).order_by(Session.last_active.desc()).limit(20).all()
     return {"sessions": [
         {"id": s.id, "question_id": s.question_id, "status": s.status,

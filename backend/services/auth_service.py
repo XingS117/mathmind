@@ -1,7 +1,7 @@
 import os, uuid, hashlib, hmac, secrets
 from datetime import datetime, timedelta
 import jwt
-from fastapi import Request
+from fastapi import HTTPException, Request
 
 JWT_SECRET = os.getenv("JWT_SECRET", "mathmind-dev-secret-key-change-in-prod")
 JWT_ALGORITHM = "HS256"
@@ -46,10 +46,19 @@ def decode_token(token: str) -> dict:
     except:
         return None
 
-def get_user_id(request, default: str = "u_default") -> str:
+def get_user_id(request, default: str = "u_default", db=None) -> str:
     auth = request.headers.get("Authorization", "")
     if auth.startswith("Bearer "):
         payload = decode_token(auth[7:])
-        if payload:
-            return payload.get("sub", default)
+        if not payload:
+            if db is not None:
+                raise HTTPException(403, "登录凭证无效")
+            return default
+        user_id = payload.get("sub", default)
+        if db is not None:
+            from backend.models.user import User
+            user = db.query(User).filter(User.id == user_id).first()
+            if not user or not user.is_active:
+                raise HTTPException(403, "账户已停用或不存在")
+        return user_id
     return default
