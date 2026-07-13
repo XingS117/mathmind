@@ -43,18 +43,22 @@ def _require_user(request: Request, db: DBSession) -> str:
     return uid
 
 
-def _safe_base_url(config: ModelConfig) -> str:
-    provider = PROVIDER_MODELS.get(config.model_provider)
+def validate_provider_base_url(model_provider: str, base_url: str) -> str:
+    provider = PROVIDER_MODELS.get(model_provider)
     if provider is None:
         raise HTTPException(400, "不支持的模型提供商")
-    base_url = config.base_url.strip() or provider["default_base_url"]
-    if config.model_provider == "mock":
+    base_url = base_url.strip() or provider["default_base_url"]
+    if model_provider == "mock":
         return ""
     parsed = urlparse(base_url)
     allowed = urlparse(provider["default_base_url"])
     if parsed.scheme != "https" or parsed.hostname != allowed.hostname:
         raise HTTPException(400, "API 地址必须为该提供商的 HTTPS 官方地址")
     return base_url.rstrip("/")
+
+
+def _safe_base_url(config: ModelConfig) -> str:
+    return validate_provider_base_url(config.model_provider, config.base_url)
 
 @router.get("/settings/providers")
 def get_providers():

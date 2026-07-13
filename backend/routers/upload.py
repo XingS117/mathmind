@@ -22,6 +22,7 @@ from backend.services.knowmap_matcher import suggest_nodes
 from backend.services.knowmap_service import get_tree
 from backend.services.operations_service import record_runtime_event
 from backend.services.referral_service import mark_first_learning_milestone
+from backend.routers.settings import validate_provider_base_url
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["upload"])
@@ -202,11 +203,16 @@ def _get_llm_config(uid: str) -> tuple[bool, dict | None]:
         has_llm = bool(config_rec and config_rec.api_key and config_rec.model_provider != "mock")
         if not has_llm:
             return False, None
+        try:
+            base_url = validate_provider_base_url(config_rec.model_provider, config_rec.base_url or "")
+        except HTTPException:
+            logger.warning("Ignoring unsafe stored model endpoint for user %s", uid)
+            return False, None
         return True, {
             "model_provider": config_rec.model_provider,
             "api_key": config_rec.api_key,
             "model_name": config_rec.model_name,
-            "base_url": config_rec.base_url or "",
+            "base_url": base_url,
         }
     finally:
         db.close()
@@ -216,6 +222,22 @@ def _has_user_model_config(uid: str) -> bool:
     db = SessionLocal()
     try:
         return db.query(UserSettings).filter(UserSettings.user_id == uid).first() is not None
+    finally:
+        db.close()
+
+
+def _stored_model_config_is_safe(uid: str) -> bool:
+    db = SessionLocal()
+    try:
+        config = db.query(UserSettings).filter(UserSettings.user_id == uid).first()
+        if not config or not config.api_key or config.model_provider == "mock":
+            return True
+        try:
+            validate_provider_base_url(config.model_provider, config.base_url or "")
+            return True
+        except HTTPException:
+            logger.warning("Ignoring unsafe stored model endpoint for user %s", uid)
+            return False
     finally:
         db.close()
 
@@ -246,6 +268,8 @@ async def analyze_question(images: List[UploadFile] = File(alias="image"), reque
 
     if request and not _has_user_model_config(uid):
         raise HTTPException(400, "请先在设置中配置个人模型")
+    if request and not _stored_model_config_is_safe(uid):
+        raise HTTPException(400, "个人模型地址无效，请在设置中更新")
 
     has_llm, llm_config = _get_llm_config(uid)
     raw_parts: list[str] = []
@@ -359,6 +383,8 @@ async def confirm_question(data: ConfirmRequest, request: Request = None, db: DB
     if request and not rate_limiter.allow(f"{uid}:{client_ip(request)}", "question_confirm", limit=30):
         raise HTTPException(429, "题目入库请求过于频繁，请稍后再试")
     _validate_confirm_input(data)
+    if request and not _stored_model_config_is_safe(uid):
+        raise HTTPException(400, "个人模型地址无效，请在设置中更新")
     qid = f"q_{uuid.uuid4().hex[:12]}"
     _, llm_config = _get_llm_config(uid)
 

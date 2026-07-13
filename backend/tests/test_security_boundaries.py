@@ -81,6 +81,16 @@ class SecurityBoundariesTest(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         call_model.assert_not_called()
 
+    def test_legacy_unsafe_model_url_is_rejected_before_any_model_call(self):
+        self.db.add(UserSettings(user_id=self.user_id, model_provider="openai", model_name="gpt-test", api_key="secret", base_url="http://127.0.0.1:8000"))
+        self.db.commit()
+        with patch.dict(os.environ, {"MATHMIND_LLM_API_KEY": "", "DEEPSEEK_API_KEY": ""}), patch("backend.routers.upload.call_llm_with_config") as call_model:
+            analyze = self.client.post("/api/v1/questions/analyze", headers=self.headers, files={"image": ("q.png", io.BytesIO(b"png"), "image/png")})
+            confirm = self.client.post("/api/v1/questions/confirm", headers=self.headers, json={"text": "x=1"})
+        self.assertEqual(analyze.status_code, 400)
+        self.assertEqual(confirm.status_code, 400)
+        call_model.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()
