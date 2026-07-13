@@ -110,16 +110,23 @@ def accounts_overview(request: Request, db: DBSession = Depends(get_db)):
     login_stats = (
         db.query(
             LoginEvent.user_id.label("user_id"), func.count(LoginEvent.id).label("login_count"),
-            func.max(LoginEvent.occurred_at).label("last_login_at"),
         )
         .filter(LoginEvent.outcome == "success")
         .group_by(LoginEvent.user_id)
         .subquery()
     )
+    latest_login_id = (
+        db.query(LoginEvent.id)
+        .filter(LoginEvent.user_id == User.id, LoginEvent.outcome == "success")
+        .order_by(LoginEvent.occurred_at.desc(), LoginEvent.id.desc())
+        .limit(1)
+        .correlate(User)
+        .scalar_subquery()
+    )
     rows = (
-        db.query(User, login_stats.c.login_count, login_stats.c.last_login_at, LoginEvent.ip_masked, LoginEvent.user_agent_family)
+        db.query(User, login_stats.c.login_count, LoginEvent.occurred_at, LoginEvent.ip_masked, LoginEvent.user_agent_family)
         .outerjoin(login_stats, login_stats.c.user_id == User.id)
-        .outerjoin(LoginEvent, (LoginEvent.user_id == User.id) & (LoginEvent.outcome == "success") & (LoginEvent.occurred_at == login_stats.c.last_login_at))
+        .outerjoin(LoginEvent, LoginEvent.id == latest_login_id)
         .order_by(User.created_at.desc())
         .all()
     )

@@ -130,6 +130,24 @@ class OperationsAdminTest(unittest.TestCase):
         self.assertNotIn("secret-full-ip-hash", str(account))
         self.assertNotIn("password", str(account).lower())
 
+    def test_accounts_overview_chooses_one_latest_login_when_timestamps_match(self):
+        same_second = datetime(2026, 7, 13, 9, 0, 0)
+        db = self.SessionLocal()
+        try:
+            db.add_all([
+                LoginEvent(id="le_same_a", user_id=self.user_id, outcome="success", occurred_at=same_second, ip_masked="198.51.100.*", ip_fingerprint="hash-a", user_agent_family="Firefox"),
+                LoginEvent(id="le_same_b", user_id=self.user_id, outcome="success", occurred_at=same_second, ip_masked="203.0.113.*", ip_fingerprint="hash-b", user_agent_family="Chrome"),
+            ])
+            db.commit()
+        finally:
+            db.close()
+        response = self.client.get("/api/v1/admin/accounts-overview", headers=self.admin_headers)
+        self.assertEqual(response.status_code, 200)
+        matches = [item for item in response.json()["accounts"] if item["id"] == self.user_id]
+        self.assertEqual(len(matches), 1)
+        self.assertEqual(matches[0]["last_ip_masked"], "203.0.113.*")
+        self.assertEqual(matches[0]["user_agent_family"], "Chrome")
+
     def test_accounts_overview_uses_bounded_queries_for_multiple_users(self):
         db = self.SessionLocal()
         try:
