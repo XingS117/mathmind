@@ -1,3 +1,5 @@
+import { jsonOrThrow } from "./apiResponse.js";
+
 const BASE = "/api/v1";
 
 function authHeader(): Record<string, string> {
@@ -26,10 +28,7 @@ async function apiJson<T>(path: string, init: Init = {}): Promise<T> {
 }
 
 async function apiJsonOrThrow<T>(path: string, init: Init = {}): Promise<T> {
-  const r = await apiFetch(path, init);
-  const data = await r.json().catch(() => ({})) as { detail?: unknown } & T;
-  if (!r.ok) throw new Error(typeof data.detail === "string" ? data.detail : "请求失败");
-  return data;
+  return jsonOrThrow<T>(await apiFetch(path, init));
 }
 
 export interface AnalysisResult {
@@ -242,14 +241,14 @@ export type DueReview = {
 };
 
 export async function getDashboard() {
-  return apiJson<any>("/learn/dashboard");
+  return apiJsonOrThrow<any>("/learn/dashboard");
 }
 
 export const completeReview = (id: string) =>
   apiJsonOrThrow<{ status: string }>(`/learn/reviews/${id}/complete`, { method: "POST" });
 
 export async function getHistory() {
-  return apiJson<any>("/learn/history");
+  return apiJsonOrThrow<any>("/learn/history");
 }
 
 export async function getModelConfig() {
