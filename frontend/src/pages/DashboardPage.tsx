@@ -1,6 +1,9 @@
 ﻿import { useState, useEffect, useCallback } from "react";
 import { completeReview, DueReview, getDashboard, getHistory } from "../services/api";
 
+import { useRef } from "react";
+import { dashboardViewState } from "./dashboardViewState.js";
+
 type Page = "dashboard" | "upload" | "knowmap" | "tutor";
 
 interface Props {
@@ -24,25 +27,41 @@ export default function DashboardPage({ onSelectQuestion, onNavigate, onSelectWe
   const [reviewError, setReviewError] = useState("");
   const [reviewSuccess, setReviewSuccess] = useState("");
   const [dashboardError, setDashboardError] = useState("");
+  const [historyError, setHistoryError] = useState("");
   const [loading, setLoading] = useState(true);
+  const mounted = useRef(true);
 
   const refreshDashboard = useCallback(async () => {
     setLoading(true);
     setDashboardError("");
+    setHistoryError("");
     try {
-      const [dashboard, historyData] = await Promise.all([getDashboard(), getHistory()]);
+      const dashboard = await getDashboard();
+      if (!mounted.current) return false;
       setData(dashboard);
-      setHistory(historyData.sessions || []);
-      return true;
     } catch {
-      setDashboardError("首页数据加载失败，请稍后刷新重试。");
+      if (mounted.current) {
+        setDashboardError("首页数据加载失败，请稍后刷新重试。");
+        setLoading(false);
+      }
       return false;
-    } finally {
-      setLoading(false);
     }
+    try {
+      const historyData = await getHistory();
+      if (mounted.current) setHistory(historyData.sessions || []);
+    } catch {
+      if (mounted.current) setHistoryError("最近学习记录加载失败，不影响今日复习。");
+    } finally {
+      if (mounted.current) setLoading(false);
+    }
+    return true;
   }, []);
 
-  useEffect(() => { void refreshDashboard(); }, [refreshDashboard]);
+  useEffect(() => {
+    mounted.current = true;
+    void refreshDashboard();
+    return () => { mounted.current = false; };
+  }, [refreshDashboard]);
 
   const handleStartReview = (review: DueReview) => {
     setStartingReviewId(review.id);
@@ -62,9 +81,9 @@ export default function DashboardPage({ onSelectQuestion, onNavigate, onSelectWe
         setReviewSuccess("复习已完成，掌握度已更新。");
       }
     } catch {
-      setReviewError("复习提交失败，请稍后重试。");
+      if (mounted.current) setReviewError("复习提交失败，请稍后重试。");
     } finally {
-      setCompletingReviewId(null);
+      if (mounted.current) setCompletingReviewId(null);
     }
   };
 
@@ -76,6 +95,16 @@ export default function DashboardPage({ onSelectQuestion, onNavigate, onSelectWe
 
   const weakBg = "rgba(239,68,68,0.08)";
   const weakColor = "var(--error)";
+  const viewState = dashboardViewState({ loading, data, dashboardError });
+
+  if (viewState === "initial_error") {
+    return (
+      <div style={{ padding: 20, background: "var(--card)", borderRadius: "var(--radius)", border: "1px solid var(--border)", boxShadow: "var(--shadow)", textAlign: "center" }}>
+        <p role="alert" style={{ margin: "0 0 12px", color: "var(--error)", fontSize: 14 }}>{dashboardError}</p>
+        <button type="button" onClick={() => { void refreshDashboard(); }} style={{ padding: "7px 14px", border: "none", borderRadius: "var(--radius-sm)", background: "var(--brand)", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>重试</button>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -84,7 +113,7 @@ export default function DashboardPage({ onSelectQuestion, onNavigate, onSelectWe
           <h2 style={{ margin: 0, fontSize: 16, color: "var(--text)" }}>今日复习</h2>
           <span style={{ fontSize: 12, color: "var(--success)", fontWeight: 600 }}>本周掌握度变化 +{Math.round((data?.mastery_change || 0) * 100)}%</span>
         </div>
-        {loading ? (
+        {viewState === "loading" ? (
           <p role="status" style={{ margin: 0, fontSize: 13, color: "var(--text-muted)" }}>正在加载今日复习…</p>
         ) : data?.due_reviews?.length > 0 ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -116,7 +145,7 @@ export default function DashboardPage({ onSelectQuestion, onNavigate, onSelectWe
             </button>
           </div>
         )}
-        {dashboardError && <p role="alert" style={{ margin: "10px 0 0", color: "var(--error)", fontSize: 12 }}>{dashboardError}</p>}
+        {dashboardError && data && <p role="alert" style={{ margin: "10px 0 0", color: "var(--error)", fontSize: 12 }}>{dashboardError}</p>}
         {reviewError && <p role="alert" style={{ margin: "10px 0 0", color: "var(--error)", fontSize: 12 }}>{reviewError}</p>}
         {reviewSuccess && <p role="status" style={{ margin: "10px 0 0", color: "var(--success)", fontSize: 12 }}>{reviewSuccess}</p>}
       </div>
@@ -197,7 +226,11 @@ export default function DashboardPage({ onSelectQuestion, onNavigate, onSelectWe
         </div>
       )}
 
-      {history.length > 0 ? (
+      {historyError ? (
+        <div style={{ padding: 16, background: "var(--card)", borderRadius: "var(--radius)", border: "1px solid var(--border)", boxShadow: "var(--shadow)", color: "var(--text-muted)", fontSize: 13 }}>
+          {historyError}
+        </div>
+      ) : history.length > 0 ? (
         <div style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: 16 }}>
           <div style={{ background: "var(--card)", borderRadius: "var(--radius)", border: "1px solid var(--border)", padding: 20, boxShadow: "var(--shadow)" }}>
             <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: "var(--text)" }}>最近学习</h3>
