@@ -57,6 +57,14 @@ notepad .env
 
 生产环境缺少 `JWT_SECRET`、`MATHMIND_IP_HASH_SECRET`、`ADMIN_PASS`，或仍使用 JWT 开发默认值/`admin123` 时，服务会拒绝启动。开发环境允许受控回退，并在日志中给出警告；不要将开发回退用于联网部署。
 
+如果升级前已创建管理员且密码仍为 `admin123`，生产启动会拒绝继续，且普通启动不会自动改密码。先停止服务，在 `.env` 中显式设置新的非默认 `ADMIN_PASS`，执行独立轮换脚本，再启动服务：
+
+```powershell
+# 停止正在运行的服务后执行；脚本不会输出密码
+python scripts\rotate_admin_password.py
+powershell -ExecutionPolicy Bypass -File scripts\serve.ps1
+```
+
 在 Windows 计划任务中每天运行一次（例如 02:30）：
 
 ```powershell

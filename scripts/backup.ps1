@@ -13,9 +13,22 @@ if (-not (Test-Path -LiteralPath $DatabasePath -PathType Leaf)) {
 $backupDirectory = Join-Path $root "data\backups"
 New-Item -ItemType Directory -Force -Path $backupDirectory | Out-Null
 $backupPath = Join-Path $backupDirectory ("mathmind-" + (Get-Date -Format "yyyyMMdd-HHmmss") + ".db")
-$python = Get-Command python -ErrorAction SilentlyContinue
-if (-not $python) { $python = Get-Command py -ErrorAction SilentlyContinue }
-if (-not $python) { throw "Python is required for SQLite backups" }
+$venvPython = Join-Path $root ".venv/bin/python"
+if (Test-Path -LiteralPath $venvPython -PathType Leaf) {
+    $pythonCommand = $venvPython
+} else {
+    $pythonCommand = $null
+    foreach ($candidateName in @("python3", "python", "py")) {
+        $candidate = Get-Command $candidateName -ErrorAction SilentlyContinue
+        if (-not $candidate) { continue }
+        & $candidate.Source --version *> $null
+        if ($LASTEXITCODE -eq 0) {
+            $pythonCommand = $candidate.Source
+            break
+        }
+    }
+    if (-not $pythonCommand) { throw "Python is required for SQLite backups" }
+}
 
 $backupCode = @'
 import hashlib
@@ -42,7 +55,7 @@ with open(backup_path + ".sha256", "w", encoding="ascii", newline="\n") as check
 
 try {
     $encodedBackupCode = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($backupCode))
-    & $python.Source -c "import base64,sys;exec(base64.b64decode(sys.argv[1]))" $encodedBackupCode $DatabasePath $backupPath
+    & $pythonCommand -c "import base64,sys;exec(base64.b64decode(sys.argv[1]))" $encodedBackupCode $DatabasePath $backupPath
     if ($LASTEXITCODE -ne 0) { throw "SQLite backup failed with exit code $LASTEXITCODE" }
     Get-ChildItem -LiteralPath $backupDirectory -Filter "mathmind-*.db" -File |
         Sort-Object LastWriteTime -Descending |

@@ -15,23 +15,36 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="MathMind - ShuZhiXueTang", version="0.1.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
+def ensure_initial_accounts(db, runtime_config):
+    """Create first-run accounts and reject a known unsafe legacy admin password."""
+    from backend.models.user import User
+    from backend.services.auth_service import hash_password, verify_password
+
+    if not db.query(User).first():
+        db.add(User(id="u_default", username="default", name="学生"))
+
+    admin_user = db.query(User).filter(User.role == "admin").first()
+    if admin_user:
+        if runtime_config.environment == "production" and verify_password("admin123", admin_user.password_hash):
+            raise RuntimeError(
+                "Existing administrator uses the default password. Stop the service and perform password rotation with "
+                "scripts/rotate_admin_password.py using ADMIN_PASS before startup."
+            )
+        return
+
+    admin = User(id="u_admin", username="admin", password_hash=hash_password(runtime_config.admin_pass), name="管理员", role="admin", school_level="高中")
+    db.add(admin)
+    db.commit()
+    logger.info("Initial administrator account created")
+
 @app.on_event("startup")
 def startup():
     runtime_config = load_runtime_config()
     init_db()
     db = SessionLocal()
-    from backend.models.user import User
-    if not db.query(User).first():
-        db.add(User(id="u_default", username="default", name="学生"))
     from backend.services.seed_service import seed_database
     seed_database(db)
-    from backend.services.auth_service import hash_password
-    admin_user = db.query(User).filter(User.role == "admin").first()
-    if not admin_user:
-        admin = User(id="u_admin", username="admin", password_hash=hash_password(runtime_config.admin_pass), name="管理员", role="admin", school_level="高中")
-        db.add(admin)
-        db.commit()
-        logger.info("Initial administrator account created")
+    ensure_initial_accounts(db, runtime_config)
     db.close()
     from backend.services.ocr_service import init_ocr_background
     init_ocr_background()
