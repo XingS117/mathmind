@@ -78,8 +78,9 @@ async def call_llm_with_config(prompt: str, config: dict, system: str = "") -> s
 
 
 def _record_runtime(provider: str, model_name: str, outcome: str, started: float, error_code: str | None) -> None:
-    db = SessionLocal()
+    db = None
     try:
+        db = SessionLocal()
         record_runtime_event(
             db, feature="llm", engine_kind="text", provider=provider, model_name=model_name,
             outcome=outcome, duration_ms=round((time.monotonic() - started) * 1000), error_code=error_code,
@@ -87,4 +88,8 @@ def _record_runtime(provider: str, model_name: str, outcome: str, started: float
     except Exception:
         logger.warning("Failed to record LLM runtime event", exc_info=True)
     finally:
-        db.close()
+        if db is not None:
+            try:
+                db.close()
+            except Exception:
+                logger.warning("Failed to close LLM telemetry session", exc_info=True)

@@ -25,8 +25,9 @@ router = APIRouter(tags=["upload"])
 
 
 def _record_vision_runtime(config: dict, outcome: str, started: float, error_code: str | None = None) -> None:
-    db = SessionLocal()
+    db = None
     try:
+        db = SessionLocal()
         record_runtime_event(
             db, feature="ocr", engine_kind="vision", provider=config.get("model_provider", ""),
             model_name=config.get("model_name", ""), outcome=outcome,
@@ -35,7 +36,11 @@ def _record_vision_runtime(config: dict, outcome: str, started: float, error_cod
     except Exception:
         logger.warning("Failed to record vision OCR runtime event", exc_info=True)
     finally:
-        db.close()
+        if db is not None:
+            try:
+                db.close()
+            except Exception:
+                logger.warning("Failed to close vision OCR telemetry session", exc_info=True)
 
 
 class ConfirmRequest(BaseModel):

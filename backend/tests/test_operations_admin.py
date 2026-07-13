@@ -5,7 +5,7 @@ from datetime import datetime
 from unittest.mock import AsyncMock, Mock, patch
 
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 from backend.database import Base
@@ -62,6 +62,16 @@ class OperationsAdminTest(unittest.TestCase):
         response = self.client.get("/api/v1/admin/accounts-overview")
         self.assertEqual(response.status_code, 403)
 
+    def test_disabled_admin_cannot_use_existing_token(self):
+        db = self.SessionLocal()
+        try:
+            db.query(User).filter_by(id=self.admin_id).update({User.is_active: False})
+            db.commit()
+        finally:
+            db.close()
+        response = self.client.get("/api/v1/admin/accounts-overview", headers=self.admin_headers)
+        self.assertEqual(response.status_code, 403)
+
     def test_admin_can_update_status_but_not_disable_self_and_audits(self):
         blocked = self.client.patch(f"/api/v1/admin/users/{self.admin_id}/status", json={"is_active": False}, headers=self.admin_headers)
         self.assertEqual(blocked.status_code, 400)
@@ -88,6 +98,22 @@ class OperationsAdminTest(unittest.TestCase):
         finally:
             db.close()
 
+    def test_create_and_delete_user_are_audited(self):
+        created = self.client.post(
+            "/api/v1/admin/users", json={"username": "audit-user", "password": "password-123", "name": "Audit"},
+            headers=self.admin_headers,
+        )
+        self.assertEqual(created.status_code, 200)
+        user_id = created.json()["id"]
+        deleted = self.client.delete(f"/api/v1/admin/users/{user_id}", headers=self.admin_headers)
+        self.assertEqual(deleted.status_code, 200)
+        db = self.SessionLocal()
+        try:
+            actions = [row.action for row in db.query(AdminAuditEvent).filter_by(target_user_id=user_id).all()]
+            self.assertEqual(actions, ["create_user", "delete_user"])
+        finally:
+            db.close()
+
     def test_accounts_overview_exposes_only_safe_login_metadata(self):
         db = self.SessionLocal()
         try:
@@ -103,6 +129,29 @@ class OperationsAdminTest(unittest.TestCase):
         self.assertNotIn("203.0.113.9", str(account))
         self.assertNotIn("secret-full-ip-hash", str(account))
         self.assertNotIn("password", str(account).lower())
+
+    def test_accounts_overview_uses_bounded_queries_for_multiple_users(self):
+        db = self.SessionLocal()
+        try:
+            for index in range(4):
+                db.add(User(id=f"u_extra_{index}", username=f"extra-{index}", name="Extra", role="user", password_hash="hash"))
+            db.commit()
+        finally:
+            db.close()
+        statements = []
+
+        def observe(conn, cursor, statement, parameters, context, executemany):
+            if statement.lstrip().upper().startswith("SELECT"):
+                statements.append(statement)
+
+        event.listen(self.engine, "before_cursor_execute", observe)
+        try:
+            response = self.client.get("/api/v1/admin/accounts-overview", headers=self.admin_headers)
+        finally:
+            event.remove(self.engine, "before_cursor_execute", observe)
+        self.assertEqual(response.status_code, 200)
+        self.assertGreaterEqual(len(response.json()["accounts"]), 6)
+        self.assertLessEqual(len(statements), 2)
 
     def test_runtime_event_whitelist_and_runtime_overview_aggregation(self):
         db = self.SessionLocal()
@@ -154,6 +203,18 @@ class RuntimeInstrumentationTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(set(kwargs), {"feature", "engine_kind", "provider", "model_name", "outcome", "duration_ms", "error_code"})
         self.assertNotIn("prompt", kwargs)
         self.assertNotIn("api_key", kwargs)
+
+    async def test_telemetry_session_failure_does_not_break_ocr_or_llm(self):
+        fake_ocr = Mock()
+        fake_ocr.predict.return_value = [{"rec_texts": ["题目文本"]}]
+        with (
+            patch.object(ocr_service, "get_ocr", return_value=fake_ocr),
+            patch.object(ocr_service, "_mock_mode", False),
+            patch("backend.services.ocr_service.SessionLocal", side_effect=RuntimeError("database unavailable")),
+        ):
+            self.assertEqual(await ocr_service.ocr_image(b"image-bytes"), "题目文本")
+        with patch("backend.services.llm_service.SessionLocal", side_effect=RuntimeError("database unavailable")):
+            self.assertEqual(await llm_service.call_llm_with_config("secret prompt", {"model_provider": "mock"}), "")
 
     def test_vision_runtime_records_only_allowlisted_metadata(self):
         fake_db = Mock()

@@ -29,7 +29,7 @@ class ResetPasswordRequest(BaseModel):
 def require_admin(request: Request, db: DBSession = Depends(get_db)):
     uid = get_user_id(request)
     user = db.query(User).filter(User.id == uid).first()
-    if not user or user.role != "admin":
+    if not user or user.role != "admin" or not user.is_active:
         raise HTTPException(403, "仅管理员可操作")
     return user
 
@@ -41,7 +41,7 @@ def list_users(request: Request, db: DBSession = Depends(get_db)):
 
 @router.post("/admin/users")
 def create_user(req: CreateUserRequest, request: Request, db: DBSession = Depends(get_db)):
-    require_admin(request, db)
+    admin = require_admin(request, db)
     existing = db.query(User).filter(User.username == req.username).first()
     if existing:
         raise HTTPException(400, "用户名已存在")
@@ -50,18 +50,20 @@ def create_user(req: CreateUserRequest, request: Request, db: DBSession = Depend
     uid = f"u_{uuid.uuid4().hex[:12]}"
     user = User(id=uid, username=req.username, password_hash=hash_password(req.password), name=req.name, role="user", school_level=req.school_level)
     db.add(user)
+    _audit(db, admin.id, user.id, "create_user")
     db.commit()
     logger.info(f"Created user {req.username} ({uid})")
     return {"id": uid, "username": req.username, "name": req.name}
 
 @router.delete("/admin/users/{user_id}")
 def delete_user(user_id: str, request: Request, db: DBSession = Depends(get_db)):
-    require_admin(request, db)
+    admin = require_admin(request, db)
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(404, "用户不存在")
     if user.role == "admin":
         raise HTTPException(400, "不能删除管理员")
+    _audit(db, admin.id, user.id, "delete_user")
     db.delete(user)
     db.commit()
     return {"message": "用户已删除"}
@@ -105,20 +107,29 @@ def reset_password(user_id: str, req: ResetPasswordRequest, request: Request, db
 @router.get("/admin/accounts-overview")
 def accounts_overview(request: Request, db: DBSession = Depends(get_db)):
     require_admin(request, db)
-    users = db.query(User).order_by(User.created_at.desc()).all()
-    accounts = []
-    for user in users:
-        logins = db.query(LoginEvent).filter(LoginEvent.user_id == user.id, LoginEvent.outcome == "success")
-        latest = logins.order_by(LoginEvent.occurred_at.desc()).first()
-        accounts.append({
-            "id": user.id, "username": user.username, "name": user.name,
-            "is_active": user.is_active, "created_at": str(user.created_at) if user.created_at else None,
-            "login_count": logins.count(),
-            "last_login_at": str(latest.occurred_at) if latest and latest.occurred_at else None,
-            "last_ip_masked": latest.ip_masked if latest else None,
-            "user_agent_family": latest.user_agent_family if latest else None,
-        })
-    return {"accounts": accounts}
+    login_stats = (
+        db.query(
+            LoginEvent.user_id.label("user_id"), func.count(LoginEvent.id).label("login_count"),
+            func.max(LoginEvent.occurred_at).label("last_login_at"),
+        )
+        .filter(LoginEvent.outcome == "success")
+        .group_by(LoginEvent.user_id)
+        .subquery()
+    )
+    rows = (
+        db.query(User, login_stats.c.login_count, login_stats.c.last_login_at, LoginEvent.ip_masked, LoginEvent.user_agent_family)
+        .outerjoin(login_stats, login_stats.c.user_id == User.id)
+        .outerjoin(LoginEvent, (LoginEvent.user_id == User.id) & (LoginEvent.outcome == "success") & (LoginEvent.occurred_at == login_stats.c.last_login_at))
+        .order_by(User.created_at.desc())
+        .all()
+    )
+    return {"accounts": [{
+        "id": user.id, "username": user.username, "name": user.name,
+        "is_active": user.is_active, "created_at": str(user.created_at) if user.created_at else None,
+        "login_count": login_count or 0,
+        "last_login_at": str(last_login_at) if last_login_at else None,
+        "last_ip_masked": ip_masked, "user_agent_family": user_agent_family,
+    } for user, login_count, last_login_at, ip_masked, user_agent_family in rows]}
 
 
 @router.get("/admin/runtime-overview")

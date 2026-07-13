@@ -220,8 +220,9 @@ async def ocr_image(image_bytes: bytes) -> str:
         error_code = str(exc).split(":", 1)[0]
         raise
     finally:
-        db = SessionLocal()
+        db = None
         try:
+            db = SessionLocal()
             record_runtime_event(
                 db, feature="ocr", engine_kind="ocr", provider="paddleocr", model_name="PaddleOCR",
                 outcome=outcome, duration_ms=round((time.monotonic() - started) * 1000), error_code=error_code,
@@ -229,4 +230,8 @@ async def ocr_image(image_bytes: bytes) -> str:
         except Exception:  # Telemetry must not affect OCR requests.
             logger.warning("Failed to record OCR runtime event", exc_info=True)
         finally:
-            db.close()
+            if db is not None:
+                try:
+                    db.close()
+                except Exception:
+                    logger.warning("Failed to close OCR telemetry session", exc_info=True)
