@@ -197,9 +197,10 @@ class PublicAuthFlowTest(unittest.TestCase):
 
     def test_untrusted_forwarded_for_does_not_change_login_event_source(self):
         self.assertEqual(self.register().status_code, 201)
-        self.client.post(
-            "/api/v1/auth/login", json={"username": self.username, "password": self.password}, headers=self.headers
-        )
+        with patch.dict(os.environ, {"MATHMIND_TRUST_PROXY": ""}, clear=False):
+            self.client.post(
+                "/api/v1/auth/login", json={"username": self.username, "password": self.password}, headers=self.headers
+            )
         db = database.SessionLocal()
         try:
             user = db.query(User).filter(User.username == self.username).one()
@@ -210,15 +211,19 @@ class PublicAuthFlowTest(unittest.TestCase):
 
     def test_trusted_proxy_uses_first_forwarded_for_value(self):
         self.assertEqual(self.register().status_code, 201)
+        forwarded_for = "203.0.113.10, 10.0.0.1"
+        headers = {**self.headers, "X-Forwarded-For": forwarded_for}
         with patch.dict(os.environ, {"MATHMIND_TRUST_PROXY": "1"}):
             self.client.post(
-                "/api/v1/auth/login", json={"username": self.username, "password": self.password}, headers=self.headers
+                "/api/v1/auth/login", json={"username": self.username, "password": self.password}, headers=headers
             )
         db = database.SessionLocal()
         try:
             user = db.query(User).filter(User.username == self.username).one()
             event = db.query(LoginEvent).filter(LoginEvent.user_id == user.id).one()
-            self.assertEqual(event.ip_masked, ".".join(self.test_ip.split(".")[:3] + ["*"]))
+            self.assertEqual(event.ip_masked, "203.0.113.*")
+            self.assertEqual(event.ip_fingerprint, fingerprint_ip("203.0.113.10"))
+            self.assertNotEqual(event.ip_fingerprint, fingerprint_ip("10.0.0.1"))
         finally:
             db.close()
 
@@ -227,17 +232,25 @@ class OperationsSecurityTest(unittest.TestCase):
     def test_ip_fingerprint_uses_configured_secret_and_not_repository_constant(self):
         import backend.services.operations_service as operations_service
 
-        with patch.dict(os.environ, {"MATHMIND_IP_HASH_SECRET": "test-secret"}, clear=False):
-            operations_service = importlib.reload(operations_service)
-            configured = operations_service.fingerprint_ip("203.0.113.77")
-        with patch.dict(os.environ, {}, clear=True):
-            operations_service = importlib.reload(operations_service)
-            generated = operations_service.fingerprint_ip("203.0.113.77")
+        original_env = os.environ.copy()
+        try:
+            with patch.dict(os.environ, {"MATHMIND_IP_HASH_SECRET": "test-secret"}, clear=False):
+                operations_service = importlib.reload(operations_service)
+                configured = operations_service.fingerprint_ip("203.0.113.77")
+            with patch.dict(os.environ, {}, clear=True):
+                operations_service = importlib.reload(operations_service)
+                generated_once = operations_service.fingerprint_ip("203.0.113.77")
+                operations_service = importlib.reload(operations_service)
+                generated_twice = operations_service.fingerprint_ip("203.0.113.77")
 
-        fixed_default = hashlib.sha256(b"mathmind-ip-fingerprint:203.0.113.77").hexdigest()
-        self.assertNotEqual(configured, fixed_default)
-        self.assertNotEqual(generated, fixed_default)
-        self.assertNotEqual(configured, generated)
+            fixed_default = hashlib.sha256(b"mathmind-ip-fingerprint:203.0.113.77").hexdigest()
+            self.assertNotEqual(configured, fixed_default)
+            self.assertNotEqual(generated_once, fixed_default)
+            self.assertNotEqual(generated_once, generated_twice)
+        finally:
+            os.environ.clear()
+            os.environ.update(original_env)
+            importlib.reload(operations_service)
 
 
 if __name__ == "__main__":
