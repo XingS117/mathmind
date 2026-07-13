@@ -1,11 +1,12 @@
 import uuid, logging
-from sqlalchemy import func
+from sqlalchemy import case, func
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session as DBSession
 from backend.database import get_db
 from backend.models.user import User
 from backend.models.operations import AdminAuditEvent, LoginEvent, RuntimeEvent
+from backend.models.referral import ReferralAttribution, ReferralVisit
 from backend.services.auth_service import hash_password, get_user_id
 from fastapi import Request
 
@@ -156,5 +157,42 @@ def runtime_overview(request: Request, db: DBSession = Depends(get_db)):
     return {"events": [{
         "feature": row.feature, "engine_kind": row.engine_kind, "provider": row.provider,
         "model_name": row.model_name, "outcome": row.outcome, "count": row.count,
+        "avg_duration_ms": round(row.avg_duration_ms) if row.avg_duration_ms is not None else None,
+    } for row in rows]}
+
+
+@router.get("/admin/operations-overview")
+def operations_overview(request: Request, db: DBSession = Depends(get_db)):
+    """Return privacy-safe product aggregates for the operations dashboard."""
+    require_admin(request, db)
+    funnel = {
+        "visits": db.query(func.count(ReferralVisit.id)).scalar() or 0,
+        "registrations": db.query(func.count(ReferralAttribution.id)).scalar() or 0,
+        "first_questions": db.query(func.count(ReferralAttribution.id)).filter(
+            ReferralAttribution.first_question_at.is_not(None),
+        ).scalar() or 0,
+        "first_tutors": db.query(func.count(ReferralAttribution.id)).filter(
+            ReferralAttribution.first_tutor_completed_at.is_not(None),
+        ).scalar() or 0,
+    }
+    rows = (
+        db.query(
+            RuntimeEvent.engine_kind,
+            RuntimeEvent.provider,
+            RuntimeEvent.model_name,
+            func.count(RuntimeEvent.id).label("count"),
+            func.sum(case((RuntimeEvent.outcome == "success", 1), else_=0)).label("success_count"),
+            func.avg(RuntimeEvent.duration_ms).label("avg_duration_ms"),
+        )
+        .group_by(RuntimeEvent.engine_kind, RuntimeEvent.provider, RuntimeEvent.model_name)
+        .order_by(RuntimeEvent.engine_kind, RuntimeEvent.provider, RuntimeEvent.model_name)
+        .all()
+    )
+    return {"funnel": funnel, "runtime_health": [{
+        "engine_kind": row.engine_kind,
+        "provider": row.provider,
+        "model_name": row.model_name,
+        "count": row.count,
+        "success_rate": round(row.success_count / row.count, 4) if row.count else 0,
         "avg_duration_ms": round(row.avg_duration_ms) if row.avg_duration_ms is not None else None,
     } for row in rows]}

@@ -84,13 +84,36 @@ export interface AccountOverview {
   user_agent_family: string | null;
 }
 
+export interface ReferralSummary {
+  code: string;
+  share_url: string;
+  visits: number;
+  registrations: number;
+  first_questions: number;
+  first_tutors: number;
+}
+
+export interface OperationsOverview {
+  funnel: Pick<ReferralSummary, "visits" | "registrations" | "first_questions" | "first_tutors">;
+  runtime_health: Array<{
+    engine_kind: string;
+    provider: string;
+    model_name: string;
+    count: number;
+    success_rate: number;
+    avg_duration_ms: number | null;
+  }>;
+}
+
 export async function login(username: string, password: string): Promise<{ token: string; user: AuthUser }> {
   const session = await apiJsonOrThrow<{ token: string; user: AuthUser }>("/auth/login", { method: "POST", json: { username, password } });
   return { ...session, user: { ...session.user, username } };
 }
 
 export async function register(username: string, password: string, name: string): Promise<{ user: AuthUser }> {
-  return apiJsonOrThrow<{ user: AuthUser }>("/auth/register", { method: "POST", json: { username, password, name } });
+  return apiJsonOrThrow<{ user: AuthUser }>("/auth/register", {
+    method: "POST", json: { username, password, name, referral_visit_id: currentReferralVisitId() },
+  });
 }
 
 export async function fetchMe(): Promise<AuthUser> {
@@ -121,6 +144,30 @@ export async function resetAccountPassword(userId: string, newPassword: string):
   return apiJsonOrThrow<{ message: string }>(`/admin/users/${userId}/reset-password`, {
     method: "POST", json: { new_password: newPassword },
   });
+}
+
+export async function getReferralSummary(): Promise<ReferralSummary> {
+  return apiJsonOrThrow<ReferralSummary>("/referrals/me");
+}
+
+function referralVisitStorageKey(code: string) {
+  return `referral_visit:${code}`;
+}
+
+function currentReferralVisitId(): string | null {
+  if (typeof window === "undefined") return null;
+  const code = new URLSearchParams(window.location.search).get("ref");
+  return code ? sessionStorage.getItem(referralVisitStorageKey(code)) : null;
+}
+
+export async function captureReferralVisit(code: string): Promise<void> {
+  if (typeof window === "undefined" || !code || sessionStorage.getItem(referralVisitStorageKey(code))) return;
+  const result = await apiJsonOrThrow<{ visit_id: string }>(`/referrals/visit/${encodeURIComponent(code)}`, { method: "POST" });
+  sessionStorage.setItem(referralVisitStorageKey(code), result.visit_id);
+}
+
+export async function getOperationsOverview(): Promise<OperationsOverview> {
+  return apiJsonOrThrow<OperationsOverview>("/admin/operations-overview");
 }
 
 export function isLoggedIn(): boolean {

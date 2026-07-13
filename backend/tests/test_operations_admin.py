@@ -11,6 +11,7 @@ from sqlalchemy.orm import sessionmaker
 from backend.database import Base
 from backend.main import app
 from backend.models.operations import AdminAuditEvent, LoginEvent, RuntimeEvent
+from backend.models.referral import ReferralAttribution, ReferralLink, ReferralVisit
 from backend.models.user import User
 from backend.routers import admin as admin_router
 from backend.routers import auth as auth_router
@@ -186,6 +187,45 @@ class OperationsAdminTest(unittest.TestCase):
         self.assertEqual(row["count"], 2)
         self.assertEqual(row["avg_duration_ms"], 20)
         self.assertEqual(set(row), {"feature", "engine_kind", "provider", "model_name", "outcome", "count", "avg_duration_ms"})
+
+    def test_operations_overview_is_admin_only_and_returns_safe_aggregates(self):
+        denied = self.client.get("/api/v1/admin/operations-overview")
+        self.assertEqual(denied.status_code, 403)
+        empty = self.client.get("/api/v1/admin/operations-overview", headers=self.admin_headers)
+        self.assertEqual(empty.status_code, 200)
+        self.assertEqual(empty.json(), {
+            "funnel": {"visits": 0, "registrations": 0, "first_questions": 0, "first_tutors": 0},
+            "runtime_health": [],
+        })
+
+        db = self.SessionLocal()
+        try:
+            link = ReferralLink(id="rl_operations", owner_user_id=self.admin_id, code="share-code")
+            visit = ReferralVisit(id="rv_operations", referral_id=link.id)
+            attribution = ReferralAttribution(
+                id="ra_operations", inviter_user_id=self.admin_id, invitee_user_id=self.user_id,
+                visit_id=visit.id, first_question_at=datetime(2026, 7, 14, 9, 0, 0),
+            )
+            db.add_all([link, visit, attribution,
+                RuntimeEvent(id="re_success", feature="question_analysis", engine_kind="text", provider="openai", model_name="gpt-test", outcome="success", duration_ms=40),
+                RuntimeEvent(id="re_failure", feature="question_analysis", engine_kind="text", provider="openai", model_name="gpt-test", outcome="failed", duration_ms=20, error_code="upstream"),
+            ])
+            db.commit()
+        finally:
+            db.close()
+
+        response = self.client.get("/api/v1/admin/operations-overview", headers=self.admin_headers)
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["funnel"], {"visits": 1, "registrations": 1, "first_questions": 1, "first_tutors": 0})
+        self.assertEqual(payload["runtime_health"], [{
+            "engine_kind": "text", "provider": "openai", "model_name": "gpt-test",
+            "count": 2, "success_rate": 0.5, "avg_duration_ms": 30,
+        }])
+        self.assertNotIn(self.user_id, str(payload))
+        self.assertNotIn(self.user_username, str(payload))
+        self.assertNotIn("share-code", str(payload))
+        self.assertNotIn("error_code", str(payload))
 
 
 if __name__ == "__main__":

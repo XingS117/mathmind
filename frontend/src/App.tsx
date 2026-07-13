@@ -8,9 +8,11 @@ import WenXingLogo from "./components/WenXingLogo"
 import LoginPage from "./pages/LoginPage";
 import AccountPage from "./pages/AccountPage";
 import AdminAccountsPage from "./pages/AdminAccountsPage";
-import { getActiveSession, uploadQuestion, fetchMe, logout, AuthUser } from "./services/api";
+import { getActiveSession, uploadQuestion, fetchMe, logout, AuthUser, captureReferralVisit } from "./services/api";
+import SharePage from "./pages/SharePage";
+import AdminOperationsPage from "./pages/AdminOperationsPage";
 
-type Page = "dashboard" | "upload" | "knowmap" | "tutor" | "settings" | "login" | "account" | "adminAccounts";
+type Page = "dashboard" | "upload" | "knowmap" | "tutor" | "settings" | "login" | "account" | "share" | "adminAccounts" | "adminOperations";
 type Grade = "初中" | "高中";
 
 export default function App() {
@@ -31,6 +33,11 @@ export default function App() {
     }).catch(() => setUser(null));
   }, []);
   useEffect(() => { refreshUser(); }, [refreshUser]);
+
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get("ref");
+    if (code) void captureReferralVisit(code).catch(() => {});
+  }, []);
 
   // Re-fetch active session whenever the current user changes so guest sessions
   // do not leak into a logged-in user's dashboard.
@@ -78,7 +85,8 @@ export default function App() {
     { id: "upload" as Page, label: "入库" },
     { id: "knowmap" as Page, label: "图谱" },
     { id: "settings" as Page, label: "设置" },
-    ...(user?.role === "admin" ? [{ id: "adminAccounts" as Page, label: "管理" }] : []),
+    ...(user ? [{ id: "share" as Page, label: "分享" }] : []),
+    ...(user?.role === "admin" ? [{ id: "adminAccounts" as Page, label: "账户" }, { id: "adminOperations" as Page, label: "运营" }] : []),
     { id: user ? "account" as Page : "login" as Page, label: user ? user.name : "登录" },
   ];
 
@@ -144,7 +152,9 @@ export default function App() {
         {page === "knowmap" && <KnowMapPage grade={grade} focusWeakPoint={focusedWeakPoint} onSelectQuestion={handleSelect} />}
         {page === "login" && <LoginPage onLogin={handleLogin} />}
         {page === "account" && user && <AccountPage user={user} onUserUpdated={setUser} onOpenAdmin={() => setPage("adminAccounts")} />}
+        {page === "share" && user && <SharePage />}
         {page === "adminAccounts" && user?.role === "admin" && <AdminAccountsPage />}
+        {page === "adminOperations" && user?.role === "admin" && <AdminOperationsPage />}
         {page === "settings" && <SettingsPage />}
         {page === "tutor" && selectedQid && <TutorPage questionId={selectedQid} onSelectQuestion={handleSelect} />}
       </main>
