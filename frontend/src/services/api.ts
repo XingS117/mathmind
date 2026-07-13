@@ -1,4 +1,5 @@
 import { jsonOrThrow } from "./apiResponse.js";
+import { captureVisitOnce, referralVisitStorageKey } from "./referralCapture.js";
 
 const BASE = "/api/v1";
 
@@ -112,6 +113,7 @@ export async function login(username: string, password: string): Promise<{ token
 }
 
 export async function register(username: string, password: string, name: string): Promise<{ user: AuthUser }> {
+  await captureReferralBeforeRegistration();
   return apiJsonOrThrow<{ user: AuthUser }>("/auth/register", {
     method: "POST", json: { username, password, name, referral_visit_id: currentReferralVisitId() },
   });
@@ -151,10 +153,6 @@ export async function getReferralSummary(): Promise<ReferralSummary> {
   return apiJsonOrThrow<ReferralSummary>("/referrals/me");
 }
 
-function referralVisitStorageKey(code: string) {
-  return `referral_visit:${code}`;
-}
-
 function currentReferralVisitId(): string | null {
   if (typeof window === "undefined") return null;
   const code = new URLSearchParams(window.location.search).get("ref");
@@ -163,8 +161,20 @@ function currentReferralVisitId(): string | null {
 
 export async function captureReferralVisit(code: string): Promise<void> {
   if (typeof window === "undefined" || !code || sessionStorage.getItem(referralVisitStorageKey(code))) return;
-  const result = await apiJsonOrThrow<{ visit_id: string }>(`/referrals/visit/${encodeURIComponent(code)}`, { method: "POST" });
-  sessionStorage.setItem(referralVisitStorageKey(code), result.visit_id);
+  await captureVisitOnce(code, sessionStorage, async () => {
+    const result = await apiJsonOrThrow<{ visit_id: string }>(`/referrals/visit/${encodeURIComponent(code)}`, { method: "POST" });
+    return result.visit_id;
+  });
+}
+
+async function captureReferralBeforeRegistration(): Promise<void> {
+  if (typeof window === "undefined") return;
+  const code = new URLSearchParams(window.location.search).get("ref");
+  if (!code || currentReferralVisitId()) return;
+  const capture = captureReferralVisit(code);
+  const timeout = new Promise<void>((resolve) => window.setTimeout(resolve, 1500));
+  try { await Promise.race([capture, timeout]); }
+  catch { /* Referral failures must not prevent normal registration. */ }
 }
 
 export async function getOperationsOverview(): Promise<OperationsOverview> {
