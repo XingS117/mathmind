@@ -72,6 +72,15 @@ class SecurityBoundariesTest(unittest.TestCase):
         response = self.client.get(f"/api/v1/questions/q_secure_{self.marker}/status", headers=self.other_headers)
         self.assertEqual(response.status_code, 404)
 
+    def test_confirmation_rejects_oversized_model_input_before_calling_model(self):
+        with patch("backend.routers.upload.call_llm_with_config") as call_model:
+            response = self.client.post("/api/v1/questions/confirm", headers=self.headers, json={
+                "text": "x" * 12001,
+                "raw_ocr_text": "x" * 12001,
+            })
+        self.assertEqual(response.status_code, 400)
+        call_model.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

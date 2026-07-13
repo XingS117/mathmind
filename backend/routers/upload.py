@@ -62,6 +62,26 @@ class ConfirmRequest(BaseModel):
     needs_human_review: bool = False
 
 
+def _validate_confirm_input(data: ConfirmRequest) -> None:
+    """Bound fields persisted or used to construct model prompts before any LLM call."""
+    string_limits = {
+        "text": 12000,
+        "raw_ocr_text": 12000,
+        "solution_text": 12000,
+        "final_answer": 4000,
+        "key_insight": 2000,
+        "question_type": 64,
+        "analysis_source": 64,
+    }
+    for field, limit in string_limits.items():
+        if len(getattr(data, field)) > limit:
+            raise HTTPException(400, f"{field} 内容过长")
+    for field in ("knowledge_points", "knowmap_nodes"):
+        values = getattr(data, field)
+        if len(values) > 20 or any(len(value) > 200 for value in values):
+            raise HTTPException(400, f"{field} 数量或单项长度超限")
+
+
 ANALYZE_PROMPT = """你是一名深耕初高中数学教学的教研员。
 
 请分析以下 OCR 识别出的数学题文本，输出结构化的 JSON 数据。
@@ -338,6 +358,7 @@ async def confirm_question(data: ConfirmRequest, request: Request = None, db: DB
     uid = _require_upload_user(request, db)
     if request and not rate_limiter.allow(f"{uid}:{client_ip(request)}", "question_confirm", limit=30):
         raise HTTPException(429, "题目入库请求过于频繁，请稍后再试")
+    _validate_confirm_input(data)
     qid = f"q_{uuid.uuid4().hex[:12]}"
     _, llm_config = _get_llm_config(uid)
 
