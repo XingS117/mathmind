@@ -13,6 +13,7 @@ from backend.models.settings import UserSettings
 from backend.models.user import User
 from backend.services.auth_service import create_token, hash_password
 from backend.routers import upload as upload_router
+from backend.services import llm_service, vision_ocr_service
 
 
 class SecurityBoundariesTest(unittest.TestCase):
@@ -90,6 +91,16 @@ class SecurityBoundariesTest(unittest.TestCase):
         self.assertEqual(analyze.status_code, 400)
         self.assertEqual(confirm.status_code, 400)
         call_model.assert_not_called()
+
+    def test_external_exception_logs_do_not_include_urls_or_keys(self):
+        secret_url = "https://provider.example/path?key=SECRET-KEY"
+        with patch("backend.services.vision_ocr_service._call_gemini_vision", side_effect=RuntimeError(secret_url)), self.assertLogs("backend.services.vision_ocr_service", "ERROR") as vision_logs:
+            self.assertEqual(__import__("asyncio").run(vision_ocr_service.ocr_with_vision_llm(b"img", {"model_provider": "gemini", "api_key": "SECRET-KEY", "model_name": "gemini-test"})), "")
+        with patch.object(llm_service, "LLM_MOCK", False), patch("backend.services.llm_service.httpx.AsyncClient", side_effect=RuntimeError(secret_url)), self.assertLogs("backend.services.llm_service", "ERROR") as llm_logs:
+            self.assertEqual(__import__("asyncio").run(llm_service.call_llm_with_config("prompt", {"model_provider": "openai", "model_name": "gpt-test", "api_key": "SECRET-KEY", "base_url": "https://api.openai.com/v1"})), "")
+        logged = "\n".join(vision_logs.output + llm_logs.output)
+        self.assertNotIn("SECRET-KEY", logged)
+        self.assertNotIn("provider.example", logged)
 
 
 if __name__ == "__main__":

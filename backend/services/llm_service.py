@@ -31,7 +31,7 @@ async def call_llm(prompt: str, system: str = "") -> str:
     except Exception as e:
         outcome = "error"
         error_code = type(e).__name__
-        logger.error(f"LLM call failed: {e}")
+        logger.error("LLM external request failed (%s)", type(e).__name__)
         return ""
     finally:
         _record_runtime("deepseek", "deepseek-chat", outcome, started, error_code)
@@ -71,7 +71,7 @@ async def call_llm_with_config(prompt: str, config: dict, system: str = "") -> s
     except Exception as e:
         outcome = "error"
         error_code = type(e).__name__
-        logger.error(f"LLM call failed: {e}")
+        logger.error("LLM external request failed (%s)", type(e).__name__)
         return ""
     finally:
         _record_runtime(provider, model, outcome, started, error_code)

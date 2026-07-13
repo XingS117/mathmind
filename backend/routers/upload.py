@@ -303,7 +303,7 @@ async def analyze_question(images: List[UploadFile] = File(alias="image"), reque
                 except Exception as e:
                     vision_outcome = "error"
                     vision_error = type(e).__name__
-                    logger.warning(f"Vision OCR failed: {e}")
+                    logger.warning("Vision OCR request failed (%s)", type(e).__name__)
                 finally:
                     _record_vision_runtime(llm_config, vision_outcome, started, vision_error)
 
