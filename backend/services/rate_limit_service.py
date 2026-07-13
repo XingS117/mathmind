@@ -4,6 +4,7 @@ from threading import Lock
 
 
 MAX_TRACKED_KEYS = 10000
+SWEEP_INTERVAL_SECONDS = 5.0
 
 
 class SlidingWindowRateLimiter:
@@ -18,7 +19,7 @@ class SlidingWindowRateLimiter:
         now = time.monotonic()
         composite_key = (bucket, key)
         with self._lock:
-            if self._last_sweep_at != now:
+            if self._last_sweep_at is None or now - self._last_sweep_at >= SWEEP_INTERVAL_SECONDS:
                 self._remove_expired(now, window_seconds)
                 self._last_sweep_at = now
             if composite_key not in self._attempts:

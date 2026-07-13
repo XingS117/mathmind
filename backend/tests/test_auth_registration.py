@@ -276,6 +276,17 @@ class RateLimitServiceTest(unittest.TestCase):
             results = list(executor.map(lambda _: limiter.allow("same-ip", "login", 5), range(100)))
         self.assertEqual(sum(results), 5)
 
+    def test_sweeps_once_per_interval_then_sweeps_after_interval(self):
+        limiter = SlidingWindowRateLimiter()
+        timestamps = [100 + index / 100 for index in range(100)] + [106]
+        with patch("backend.services.rate_limit_service.time.monotonic", side_effect=timestamps):
+            with patch.object(limiter, "_remove_expired", wraps=limiter._remove_expired) as sweep:
+                for index in range(100):
+                    limiter.allow(f"ip-{index}", "login", 1)
+                self.assertEqual(sweep.call_count, 1)
+                limiter.allow("after-interval", "login", 1)
+                self.assertEqual(sweep.call_count, 2)
+
     def test_expired_keys_are_swept_and_tracking_is_bounded(self):
         limiter = SlidingWindowRateLimiter()
         with patch("backend.services.rate_limit_service.time.monotonic", return_value=0):
