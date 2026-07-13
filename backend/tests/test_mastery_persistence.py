@@ -100,6 +100,27 @@ class MasteryPersistenceTest(unittest.TestCase):
         self.assertEqual({event.delta for event in events}, {0.3})
         self.assertEqual({event.source for event in events}, {"tutor"})
 
+    def test_mastery_change_event_uses_the_capped_score_difference(self):
+        self.question.knowmap_nodes = json.dumps(["node_a"])
+        self.session.status = "completed"
+        self.db.add(Mastery(
+            id="m_near_cap", user_id="u1", node_id="node_a", score=0.98,
+            total_sessions=1, correct_sessions=1,
+        ))
+        self.db.commit()
+
+        apply_tutor_mastery(self.db, "u1", self.question, self.session, 0.05)
+        event = self.db.query(MasteryChangeEvent).filter_by(user_id="u1", node_id="node_a").one()
+        self.assertAlmostEqual(event.delta, 0.02)
+        self.assertAlmostEqual(self.db.get(Mastery, "m_near_cap").score, 1.0)
+
+        capped_session = Session(id="s_already_capped", user_id="u1", question_id="q1", status="completed")
+        self.db.add(capped_session)
+        self.db.commit()
+        apply_tutor_mastery(self.db, "u1", self.question, capped_session, 0.05)
+
+        self.assertEqual(self.db.query(MasteryChangeEvent).filter_by(user_id="u1", node_id="node_a").count(), 1)
+
     def test_review_round_delta_is_idempotent(self):
         review = ReviewSchedule(
             id="rev_round_3", user_id="u1", question_id="q1", review_round=3,
@@ -119,6 +140,22 @@ class MasteryPersistenceTest(unittest.TestCase):
         record = self.db.query(Mastery).filter_by(user_id="u1", node_id="node_a").one()
         self.assertEqual(record.score, 0.15)
         self.assertEqual(record.total_sessions, 1)
+
+    def test_review_mastery_records_only_the_remaining_score_to_the_cap(self):
+        self.question.knowmap_nodes = json.dumps(["node_a"])
+        self.db.add(Mastery(id="m_review_near_cap", user_id="u1", node_id="node_a", score=0.98))
+        review = ReviewSchedule(
+            id="rev_near_cap", user_id="u1", question_id="q1", review_round=1,
+            scheduled_date=datetime.utcnow(),
+        )
+        self.db.add(review)
+        self.db.commit()
+
+        apply_review_mastery(self.db, review)
+
+        event = self.db.query(MasteryChangeEvent).filter_by(user_id="u1", node_id="node_a").one()
+        self.assertAlmostEqual(event.delta, 0.02)
+        self.assertEqual(event.source, "review")
 
     def test_each_review_round_uses_its_fixed_delta(self):
         expected_scores = {1: 0.05, 2: 0.15, 3: 0.30, 4: 0.50}

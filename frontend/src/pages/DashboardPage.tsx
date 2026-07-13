@@ -20,22 +20,47 @@ export default function DashboardPage({ onSelectQuestion, onNavigate, onSelectWe
   const [showWeak, setShowWeak] = useState(false);
   const [showDist, setShowDist] = useState(false);
   const [completingReviewId, setCompletingReviewId] = useState<string | null>(null);
+  const [startingReviewId, setStartingReviewId] = useState<string | null>(null);
   const [reviewError, setReviewError] = useState("");
+  const [reviewSuccess, setReviewSuccess] = useState("");
+  const [dashboardError, setDashboardError] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const refreshDashboard = useCallback(() => {
-    getDashboard().then(setData).catch(() => {});
-    getHistory().then((d) => setHistory(d.sessions || [])).catch(() => {});
+  const refreshDashboard = useCallback(async () => {
+    setLoading(true);
+    setDashboardError("");
+    try {
+      const [dashboard, historyData] = await Promise.all([getDashboard(), getHistory()]);
+      setData(dashboard);
+      setHistory(historyData.sessions || []);
+      return true;
+    } catch {
+      setDashboardError("首页数据加载失败，请稍后刷新重试。");
+      return false;
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { refreshDashboard(); }, [refreshDashboard]);
+  useEffect(() => { void refreshDashboard(); }, [refreshDashboard]);
+
+  const handleStartReview = (review: DueReview) => {
+    setStartingReviewId(review.id);
+    setReviewError("");
+    setReviewSuccess("正在进入复习题…");
+    window.setTimeout(() => onSelectQuestion(review.question_id), 0);
+  };
 
   const handleCompleteReview = async (review: DueReview) => {
     if (!window.confirm("确认已完成这次复习？")) return;
     setCompletingReviewId(review.id);
     setReviewError("");
+    setReviewSuccess("");
     try {
       await completeReview(review.id);
-      refreshDashboard();
+      if (await refreshDashboard()) {
+        setReviewSuccess("复习已完成，掌握度已更新。");
+      }
     } catch {
       setReviewError("复习提交失败，请稍后重试。");
     } finally {
@@ -59,7 +84,9 @@ export default function DashboardPage({ onSelectQuestion, onNavigate, onSelectWe
           <h2 style={{ margin: 0, fontSize: 16, color: "var(--text)" }}>今日复习</h2>
           <span style={{ fontSize: 12, color: "var(--success)", fontWeight: 600 }}>本周掌握度变化 +{Math.round((data?.mastery_change || 0) * 100)}%</span>
         </div>
-        {data?.due_reviews?.length > 0 ? (
+        {loading ? (
+          <p role="status" style={{ margin: 0, fontSize: 13, color: "var(--text-muted)" }}>正在加载今日复习…</p>
+        ) : data?.due_reviews?.length > 0 ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {data.due_reviews.map((review: DueReview) => (
               <div key={review.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "10px 12px", background: "var(--bg)", borderRadius: "var(--radius-sm)" }}>
@@ -68,11 +95,11 @@ export default function DashboardPage({ onSelectQuestion, onNavigate, onSelectWe
                   <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 3 }}>{review.type} · {review.scheduled_date}</div>
                 </div>
                 <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                  <button type="button" onClick={() => onSelectQuestion(review.question_id)}
+                  <button type="button" onClick={() => handleStartReview(review)} disabled={startingReviewId !== null || completingReviewId !== null}
                     style={{ padding: "5px 9px", border: "none", borderRadius: "var(--radius-sm)", background: "var(--brand)", color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
-                    开始复习
+                    {startingReviewId === review.id ? "进入中" : "开始复习"}
                   </button>
-                  <button type="button" onClick={() => handleCompleteReview(review)} disabled={completingReviewId === review.id}
+                  <button type="button" onClick={() => handleCompleteReview(review)} disabled={completingReviewId !== null || startingReviewId !== null}
                     style={{ padding: "5px 9px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", background: "var(--card)", color: "var(--text-secondary)", cursor: completingReviewId === review.id ? "wait" : "pointer", fontSize: 12 }}>
                     {completingReviewId === review.id ? "提交中" : "完成复习"}
                   </button>
@@ -89,7 +116,9 @@ export default function DashboardPage({ onSelectQuestion, onNavigate, onSelectWe
             </button>
           </div>
         )}
+        {dashboardError && <p role="alert" style={{ margin: "10px 0 0", color: "var(--error)", fontSize: 12 }}>{dashboardError}</p>}
         {reviewError && <p role="alert" style={{ margin: "10px 0 0", color: "var(--error)", fontSize: 12 }}>{reviewError}</p>}
+        {reviewSuccess && <p role="status" style={{ margin: "10px 0 0", color: "var(--success)", fontSize: 12 }}>{reviewSuccess}</p>}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 16 }}>
         {stats.map((s, i) => (

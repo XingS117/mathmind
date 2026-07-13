@@ -70,28 +70,39 @@ def _apply_delta(db: DBSession, user_id: str, nodes: list[str], delta: float, so
                 db.flush()
         except IntegrityError:
             pass
-        db.execute(
-            update(Mastery).where(
-                Mastery.user_id == user_id,
-                Mastery.node_id == node_id,
-            ).values(
-                score=func.min(1.0, func.max(0.0, Mastery.score + delta)),
-                total_sessions=Mastery.total_sessions + 1,
-                correct_sessions=case(
-                    (delta > 0, Mastery.correct_sessions + 1),
-                    else_=Mastery.correct_sessions,
-                ),
-                last_reviewed=_utcnow(),
+        while True:
+            current_score = db.query(Mastery.score).filter_by(
+                user_id=user_id, node_id=node_id,
+            ).one()[0]
+            next_score = min(1.0, max(0.0, current_score + delta))
+            applied = db.execute(
+                update(Mastery).where(
+                    Mastery.user_id == user_id,
+                    Mastery.node_id == node_id,
+                    Mastery.score == current_score,
+                ).values(
+                    score=next_score,
+                    total_sessions=Mastery.total_sessions + 1,
+                    correct_sessions=case(
+                        (delta > 0, Mastery.correct_sessions + 1),
+                        else_=Mastery.correct_sessions,
+                    ),
+                    last_reviewed=_utcnow(),
+                )
             )
-        )
-        db.add(MasteryChangeEvent(
-            id=f"mce_{uuid.uuid4().hex[:12]}",
-            user_id=user_id,
-            node_id=node_id,
-            delta=delta,
-            source=source,
-            occurred_at=_utcnow(),
-        ))
+            if applied.rowcount == 1:
+                break
+
+        actual_delta = next_score - current_score
+        if actual_delta:
+            db.add(MasteryChangeEvent(
+                id=f"mce_{uuid.uuid4().hex[:12]}",
+                user_id=user_id,
+                node_id=node_id,
+                delta=actual_delta,
+                source=source,
+                occurred_at=_utcnow(),
+            ))
 
 
 def apply_tutor_mastery(
