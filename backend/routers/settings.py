@@ -120,4 +120,5 @@ def test_connection(config: ModelConfig, request: Request, db: DBSession = Depen
         else:
             return {"status": "error", "message": f"API 返回错误: {r.status_code}"}
     except Exception as e:
-        return {"status": "error", "message": f"连接失败: {str(e)[:100]}"}
+        logger.error("Model connection test failed (%s)", type(e).__name__)
+        return {"status": "error", "message": "连接失败，请检查模型配置与网络"}

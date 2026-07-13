@@ -102,6 +102,18 @@ class SecurityBoundariesTest(unittest.TestCase):
         self.assertNotIn("SECRET-KEY", logged)
         self.assertNotIn("provider.example", logged)
 
+    def test_model_connection_exception_does_not_echo_secret_details(self):
+        secret_url = "https://provider.example/path?key=SECRET-KEY"
+        with patch("httpx.post", side_effect=RuntimeError(secret_url)), self.assertLogs("backend.routers.settings", "ERROR") as logs:
+            response = self.client.post("/api/v1/settings/models/test", headers=self.headers, json={
+                "model_provider": "openai", "model_name": "gpt-test", "api_key": "SECRET-KEY", "base_url": "https://api.openai.com/v1",
+            })
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("SECRET-KEY", response.text)
+        self.assertNotIn("provider.example", response.text)
+        self.assertNotIn("SECRET-KEY", "\n".join(logs.output))
+        self.assertNotIn("provider.example", "\n".join(logs.output))
+
 
 if __name__ == "__main__":
     unittest.main()
