@@ -19,6 +19,7 @@ def get_db():
 
 def init_db():
     import backend.models.user
+    import backend.models.referral
     import backend.models.operations
     import backend.models.question
     import backend.models.session

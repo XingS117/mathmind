@@ -10,6 +10,7 @@ from backend.database import get_db
 from backend.models.user import User
 from backend.services.auth_service import hash_password, verify_password, needs_password_upgrade, create_token, get_user_id
 from backend.services.operations_service import client_ip, record_login_event
+from backend.services.referral_service import attribute_registration
 from backend.services.rate_limit_service import rate_limiter
 
 logger = logging.getLogger(__name__)
@@ -25,6 +26,7 @@ class RegisterRequest(BaseModel):
     username: str
     password: str
     name: str
+    referral_visit_id: str | None = None
 
     @validator("username")
     def username_is_valid(cls, value):
@@ -72,7 +74,12 @@ def register(req: RegisterRequest, request: Request, db: DBSession = Depends(get
     )
     db.add(user)
     try:
+        if req.referral_visit_id:
+            attribute_registration(db, req.referral_visit_id, user.id)
         db.commit()
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(400, str(exc))
     except IntegrityError:
         db.rollback()
         raise HTTPException(409, "用户名已存在")

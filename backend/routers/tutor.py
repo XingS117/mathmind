@@ -12,6 +12,7 @@ from backend.services.tutor_engine import process_message
 from backend.services.mastery_service import apply_tutor_mastery
 from backend.routers.review import schedule_reviews
 from backend.services.auth_service import get_user_id
+from backend.services.referral_service import mark_first_learning_milestone
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["tutor"])
@@ -104,6 +105,12 @@ def tutor_message(req: TutorMessageRequest, request: Request, db: DBSession = De
         else:
             result["reviews_scheduled"] = False
         db.commit()
+        try:
+            mark_first_learning_milestone(db, uid, "first_tutor_completed")
+            db.commit()
+        except Exception:
+            db.rollback()
+            logger.warning("Failed to record referral first-tutor milestone", exc_info=True)
     else:
         db.commit()
         if result.get("type") == "complete":

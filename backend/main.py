@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session as DBSession
 from backend.database import init_db, get_db, SessionLocal
-from backend.routers import knowmap, upload, tutor, learn, settings, auth, admin, review, health
+from backend.routers import knowmap, upload, tutor, learn, settings, auth, admin, review, health, referral
 from backend.services.runtime_config import load_runtime_config
 
 logging.basicConfig(level=logging.INFO)
@@ -56,6 +56,7 @@ app.include_router(tutor.router, prefix="/api/v1")
 app.include_router(learn.router, prefix="/api/v1")
 app.include_router(settings.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
+app.include_router(referral.router, prefix="/api/v1")
 app.include_router(admin.router, prefix="/api/v1")
 app.include_router(review.router, prefix="/api/v1")
 app.include_router(health.router, prefix="/api/v1")

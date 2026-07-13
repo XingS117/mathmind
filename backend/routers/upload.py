@@ -19,6 +19,7 @@ from backend.services.ocr_service import ocr_image
 from backend.services.knowmap_matcher import suggest_nodes
 from backend.services.knowmap_service import get_tree
 from backend.services.operations_service import record_runtime_event
+from backend.services.referral_service import mark_first_learning_milestone
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["upload"])
@@ -428,6 +429,12 @@ async def confirm_question(data: ConfirmRequest, request: Request = None, db: DB
     q.needs_human_review = needs_review_final
     db.add(q)
     db.commit()
+    try:
+        mark_first_learning_milestone(db, uid, "first_question")
+        db.commit()
+    except Exception:
+        db.rollback()
+        logger.warning("Failed to record referral first-question milestone", exc_info=True)
     return {
         "question_id": qid,
         "status": "complete",
