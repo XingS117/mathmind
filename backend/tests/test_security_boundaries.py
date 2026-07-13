@@ -114,6 +114,14 @@ class SecurityBoundariesTest(unittest.TestCase):
         self.assertNotIn("SECRET-KEY", "\n".join(logs.output))
         self.assertNotIn("provider.example", "\n".join(logs.output))
 
+    def test_password_change_enforces_registration_length_policy(self):
+        rejected = self.client.put("/api/v1/auth/password", headers=self.headers, json={"old_password": "password-123", "new_password": "short"})
+        self.assertEqual(rejected.status_code, 400)
+        changed = self.client.put("/api/v1/auth/password", headers=self.headers, json={"old_password": "password-123", "new_password": "new-password-123"})
+        self.assertEqual(changed.status_code, 200)
+        login = self.client.post("/api/v1/auth/login", json={"username": f"secure_{self.marker}", "password": "new-password-123"})
+        self.assertEqual(login.status_code, 200)
+
 
 if __name__ == "__main__":
     unittest.main()

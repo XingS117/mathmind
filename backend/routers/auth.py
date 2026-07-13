@@ -17,6 +17,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["auth"])
 DUMMY_PASSWORD_HASH = hash_password("invalid-password-placeholder")
 
+
+def _validate_password_length(value: str) -> str:
+    if not 8 <= len(value) <= 128:
+        raise ValueError("密码长度需为 8-128 位")
+    return value
+
 class LoginRequest(BaseModel):
     username: str
     password: str
@@ -36,9 +42,7 @@ class RegisterRequest(BaseModel):
 
     @validator("password")
     def password_is_valid(cls, value):
-        if not 8 <= len(value) <= 128:
-            raise ValueError("密码长度需为 8-128 位")
-        return value
+        return _validate_password_length(value)
 
     @validator("name")
     def name_is_valid(cls, value):
@@ -143,6 +147,10 @@ def change_password(req: ChangePasswordRequest, request: Request, db: DBSession 
     user = db.query(User).filter(User.id == uid).first()
     if not user:
         raise HTTPException(404, "用户不存在")
+    try:
+        _validate_password_length(req.new_password)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
     if not verify_password(req.old_password, user.password_hash):
         raise HTTPException(400, "旧密码错误")
     user.password_hash = hash_password(req.new_password)
