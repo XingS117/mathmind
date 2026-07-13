@@ -287,6 +287,14 @@ class RateLimitServiceTest(unittest.TestCase):
                 limiter.allow("after-interval", "login", 1)
                 self.assertEqual(sweep.call_count, 2)
 
+    def test_current_key_expires_exactly_at_window_boundary_between_global_sweeps(self):
+        limiter = SlidingWindowRateLimiter()
+        with patch("backend.services.rate_limit_service.time.monotonic", side_effect=[0, 0, 0, 0, 0, 299, 300]):
+            for _ in range(5):
+                self.assertTrue(limiter.allow("target", "login", 5))
+            self.assertTrue(limiter.allow("other", "login", 1))
+            self.assertTrue(limiter.allow("target", "login", 5))
+
     def test_expired_keys_are_swept_and_tracking_is_bounded(self):
         limiter = SlidingWindowRateLimiter()
         with patch("backend.services.rate_limit_service.time.monotonic", return_value=0):
