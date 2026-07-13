@@ -2,6 +2,7 @@ import secrets
 import uuid
 
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session as DBSession
 
 from backend.models.referral import ReferralAttribution, ReferralLink, ReferralVisit
@@ -17,8 +18,12 @@ def create_or_get_referral(db: DBSession, owner_id: str) -> ReferralLink:
         code=secrets.token_urlsafe(9),
     )
     db.add(link)
-    db.flush()
-    return link
+    try:
+        db.flush()
+        return link
+    except IntegrityError:
+        db.rollback()
+        return db.query(ReferralLink).filter(ReferralLink.owner_user_id == owner_id).one()
 
 
 def record_referral_visit(db: DBSession, code: str) -> str | None:

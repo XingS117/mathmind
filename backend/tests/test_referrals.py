@@ -1,7 +1,9 @@
 import asyncio
 import os
 import tempfile
+import threading
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -12,7 +14,7 @@ from sqlalchemy.orm import sessionmaker
 from backend.database import Base
 from backend.main import app
 from backend.models.user import User
-from backend.models.referral import ReferralAttribution, ReferralVisit
+from backend.models.referral import ReferralAttribution, ReferralLink, ReferralVisit
 from backend.routers import auth as auth_router
 from backend.routers import referral as referral_router
 from backend.routers import tutor as tutor_router
@@ -21,6 +23,7 @@ from backend.models.session import Session as TutorSession
 from backend.schemas.api_schemas import TutorMessageRequest
 from backend.routers.upload import ConfirmRequest
 from backend.services.auth_service import create_token
+from backend.services.rate_limit_service import rate_limiter
 from backend.services.referral_service import (
     attribute_registration,
     create_or_get_referral,
@@ -54,10 +57,12 @@ class ReferralFlowTest(unittest.TestCase):
         app.dependency_overrides[referral_router.get_db] = override_get_db
         app.dependency_overrides[auth_router.get_db] = override_get_db
         self.client = TestClient(app)
+        rate_limiter._attempts.clear()
 
     def tearDown(self):
         app.dependency_overrides.pop(referral_router.get_db, None)
         app.dependency_overrides.pop(auth_router.get_db, None)
+        rate_limiter._attempts.clear()
         self.db.close()
         self.engine.dispose()
         os.unlink(self.db_path)
@@ -65,10 +70,20 @@ class ReferralFlowTest(unittest.TestCase):
     def test_unknown_code_does_not_create_a_visit(self):
         self.assertIsNone(record_referral_visit(self.db, "missing"))
         self.assertEqual(self.db.query(ReferralVisit).count(), 0)
-
         response = self.client.post("/api/v1/referrals/visit/missing")
         self.assertEqual(response.status_code, 404)
         self.assertEqual(self.db.query(ReferralVisit).count(), 0)
+
+    def test_visit_rate_limit_rejects_without_creating_another_visit(self):
+        link = create_or_get_referral(self.db, self.owner.id)
+        self.db.commit()
+
+        for _ in range(20):
+            self.assertEqual(self.client.post(f"/api/v1/referrals/visit/{link.code}").status_code, 201)
+        rejected = self.client.post(f"/api/v1/referrals/visit/{link.code}")
+
+        self.assertEqual(rejected.status_code, 429)
+        self.assertEqual(self.db.query(ReferralVisit).count(), 20)
 
     def test_visit_endpoint_returns_opaque_id_and_owner_summary_hides_invitee_identity(self):
         link = create_or_get_referral(self.db, self.owner.id)
@@ -118,6 +133,25 @@ class ReferralFlowTest(unittest.TestCase):
             attribute_registration(self.db, visit_id, self.owner.id)
 
         self.assertEqual(self.db.query(ReferralAttribution).count(), 0)
+
+    def test_concurrent_link_creation_returns_one_stable_link(self):
+        barrier = threading.Barrier(2)
+
+        def create_link():
+            db = self.SessionLocal()
+            try:
+                barrier.wait()
+                link = create_or_get_referral(db, self.owner.id)
+                db.commit()
+                return link.code
+            finally:
+                db.close()
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            codes = list(executor.map(lambda _: create_link(), range(2)))
+
+        self.assertEqual(codes[0], codes[1])
+        self.assertEqual(self.db.query(ReferralLink).filter_by(owner_user_id=self.owner.id).count(), 1)
 
     def test_register_upload_and_completed_tutor_mark_attributed_user_once(self):
         link = create_or_get_referral(self.db, self.owner.id)
