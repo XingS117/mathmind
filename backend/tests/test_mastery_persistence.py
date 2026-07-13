@@ -1,15 +1,16 @@
 import json
 import os
 import tempfile
+import threading
 import unittest
 from unittest.mock import patch
 from datetime import datetime, timedelta
 
 from fastapi import HTTPException
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
-from backend.database import Base
+from backend.database import Base, init_db
 from backend.models.mastery import Mastery
 from backend.models.question import Question
 from backend.models.review import ReviewSchedule
@@ -176,12 +177,12 @@ class MasteryPersistenceTest(unittest.TestCase):
         self.assertEqual(create_raised.exception.status_code, 404)
         self.assertEqual(message_raised.exception.status_code, 404)
 
-    def test_two_database_sessions_claim_tutor_mastery_once(self):
+    def test_two_threads_claim_tutor_mastery_once(self):
         fd, path = tempfile.mkstemp(suffix=".db")
         os.close(fd)
-        engine = create_engine(f"sqlite:///{path}")
+        engine = create_engine(f"sqlite:///{path}", connect_args={"check_same_thread": False})
         factory = sessionmaker(bind=engine)
-        first = second = verify = None
+        verify = None
         try:
             Base.metadata.create_all(engine)
             setup = factory()
@@ -199,41 +200,53 @@ class MasteryPersistenceTest(unittest.TestCase):
             setup.commit()
             setup.close()
 
-            first, second = factory(), factory()
-            second_question = second.get(Question, "q_concurrent")
-            second_session = second.get(Session, "s_concurrent")
-            first_update = apply_tutor_mastery(
-                first, "u_concurrent", first.get(Question, "q_concurrent"),
-                first.get(Session, "s_concurrent"), 0.3,
-            )
-            if first_update.updated_nodes:
-                schedule_reviews("u_concurrent", "q_concurrent", first)
-            first.commit()
-            second_update = apply_tutor_mastery(
-                second, "u_concurrent", second_question, second_session, 0.3,
-            )
-            second.commit()
+            barrier = threading.Barrier(2)
+            results, errors = [], []
+
+            def worker():
+                db = factory()
+                try:
+                    question = db.get(Question, "q_concurrent")
+                    session = db.get(Session, "s_concurrent")
+                    barrier.wait()
+                    result = apply_tutor_mastery(db, "u_concurrent", question, session, 0.3)
+                    if result.applied:
+                        schedule_reviews("u_concurrent", "q_concurrent", db)
+                    db.commit()
+                    results.append(result.applied)
+                except Exception as error:
+                    db.rollback()
+                    errors.append(error)
+                finally:
+                    db.close()
+
+            threads = [threading.Thread(target=worker) for _ in range(2)]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join()
 
             verify = factory()
             mastery = verify.query(Mastery).filter_by(user_id="u_concurrent", node_id="node_a").one()
-            self.assertEqual(second_update.updated_nodes, [])
+            self.assertEqual(errors, [])
+            self.assertEqual(results.count(True), 1)
             self.assertEqual(mastery.score, 0.3)
             self.assertEqual(mastery.total_sessions, 1)
             self.assertEqual(verify.query(ReviewSchedule).filter_by(question_id="q_concurrent").count(), 4)
             verify.close()
         finally:
-            for db in (verify, first, second):
+            for db in (verify,):
                 if db:
                     db.close()
             engine.dispose()
             os.unlink(path)
 
-    def test_two_database_sessions_claim_review_mastery_once(self):
+    def test_two_threads_claim_review_mastery_once(self):
         fd, path = tempfile.mkstemp(suffix=".db")
         os.close(fd)
-        engine = create_engine(f"sqlite:///{path}")
+        engine = create_engine(f"sqlite:///{path}", connect_args={"check_same_thread": False})
         factory = sessionmaker(bind=engine)
-        first = second = verify = None
+        verify = None
         try:
             Base.metadata.create_all(engine)
             setup = factory()
@@ -251,24 +264,80 @@ class MasteryPersistenceTest(unittest.TestCase):
             setup.commit()
             setup.close()
 
-            first, second = factory(), factory()
-            second_review = second.get(ReviewSchedule, "rev_concurrent")
-            apply_review_mastery(first, first.get(ReviewSchedule, "rev_concurrent"))
-            first.commit()
-            second_update = apply_review_mastery(second, second_review)
-            second.commit()
+            barrier = threading.Barrier(2)
+            results, errors = [], []
+
+            def worker():
+                db = factory()
+                try:
+                    review = db.get(ReviewSchedule, "rev_concurrent")
+                    barrier.wait()
+                    result = apply_review_mastery(db, review)
+                    db.commit()
+                    results.append(result.applied)
+                except Exception as error:
+                    db.rollback()
+                    errors.append(error)
+                finally:
+                    db.close()
+
+            threads = [threading.Thread(target=worker) for _ in range(2)]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join()
 
             verify = factory()
             mastery = verify.query(Mastery).filter_by(user_id="u_concurrent", node_id="node_a").one()
-            self.assertEqual(second_update.updated_nodes, [])
+            self.assertEqual(errors, [])
+            self.assertEqual(results.count(True), 1)
             self.assertEqual(mastery.score, 0.1)
             self.assertEqual(mastery.total_sessions, 1)
             verify.close()
         finally:
-            for db in (verify, first, second):
+            for db in (verify,):
                 if db:
                     db.close()
             engine.dispose()
+            os.unlink(path)
+
+    def test_init_db_merges_duplicate_legacy_mastery_before_unique_index(self):
+        fd, path = tempfile.mkstemp(suffix=".db")
+        os.close(fd)
+        legacy_engine = create_engine(f"sqlite:///{path}")
+        try:
+            with legacy_engine.begin() as conn:
+                conn.execute(text("""
+                    CREATE TABLE mastery (
+                        id VARCHAR PRIMARY KEY, user_id VARCHAR NOT NULL, node_id VARCHAR NOT NULL,
+                        score FLOAT, total_sessions INTEGER, correct_sessions INTEGER,
+                        variant_passed BOOLEAN, last_reviewed DATETIME, manual_adjustments JSON,
+                        created_at DATETIME, updated_at DATETIME
+                    )
+                """))
+                conn.execute(text("""
+                    INSERT INTO mastery (id, user_id, node_id, score, total_sessions, correct_sessions, variant_passed, last_reviewed)
+                    VALUES
+                    ('m_a', 'u_legacy', 'node_legacy', 0.4, 2, 1, 0, '2026-01-01 00:00:00'),
+                    ('m_b', 'u_legacy', 'node_legacy', 0.8, 3, 2, 1, '2026-02-01 00:00:00')
+                """))
+
+            with patch("backend.database.engine", legacy_engine):
+                init_db()
+
+            with legacy_engine.connect() as conn:
+                rows = conn.execute(text("SELECT * FROM mastery WHERE user_id = 'u_legacy'")).mappings().all()
+                indexes = conn.execute(text("PRAGMA index_list(mastery)")).mappings().all()
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["id"], "m_a")
+            self.assertEqual(rows[0]["score"], 0.8)
+            self.assertEqual(rows[0]["total_sessions"], 5)
+            self.assertEqual(rows[0]["correct_sessions"], 3)
+            self.assertTrue(rows[0]["variant_passed"])
+            self.assertEqual(str(rows[0]["last_reviewed"]), "2026-02-01 00:00:00")
+            self.assertIn("uq_mastery_user_node", {row["name"] for row in indexes})
+        finally:
+            legacy_engine.dispose()
             os.unlink(path)
 
 

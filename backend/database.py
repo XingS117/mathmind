@@ -79,6 +79,42 @@ def _ensure_review_columns():
 
 def _ensure_mastery_indexes():
     with engine.begin() as conn:
+        rows = conn.execute(text("""
+            SELECT id, user_id, node_id, score, total_sessions, correct_sessions,
+                   variant_passed, last_reviewed
+            FROM mastery
+            ORDER BY user_id, node_id, id
+        """)).mappings().all()
+        groups = {}
+        for row in rows:
+            groups.setdefault((row["user_id"], row["node_id"]), []).append(row)
+        for duplicates in groups.values():
+            if len(duplicates) < 2:
+                continue
+            canonical, *extras = duplicates
+            latest_reviewed = max(
+                (row["last_reviewed"] for row in duplicates if row["last_reviewed"] is not None),
+                key=str,
+                default=None,
+            )
+            conn.execute(text("""
+                UPDATE mastery
+                SET score = :score,
+                    total_sessions = :total_sessions,
+                    correct_sessions = :correct_sessions,
+                    variant_passed = :variant_passed,
+                    last_reviewed = :last_reviewed
+                WHERE id = :id
+            """), {
+                "id": canonical["id"],
+                "score": min(1.0, max(float(row["score"] or 0.0) for row in duplicates)),
+                "total_sessions": sum(int(row["total_sessions"] or 0) for row in duplicates),
+                "correct_sessions": sum(int(row["correct_sessions"] or 0) for row in duplicates),
+                "variant_passed": any(bool(row["variant_passed"]) for row in duplicates),
+                "last_reviewed": latest_reviewed,
+            })
+            for duplicate in extras:
+                conn.execute(text("DELETE FROM mastery WHERE id = :id"), {"id": duplicate["id"]})
         conn.execute(text(
             "CREATE UNIQUE INDEX IF NOT EXISTS uq_mastery_user_node ON mastery (user_id, node_id)"
         ))
