@@ -90,8 +90,9 @@ function ModelConfig() {
         </div>
       )}
       <div>
-        <label style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 4, display: "block" }}>API Key</label>
+        <label style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 4, display: "block" }}>API Key（留空则保留已保存的密钥）</label>
         <input type="password" value={config.api_key} onChange={e => setConfig({ ...config, api_key: e.target.value })}
+          placeholder={config.api_key_configured ? "已配置，留空不修改" : "请输入 API Key"}
           disabled={config.model_provider === "mock"}
           style={{ width: "100%", padding: "9px 12px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", fontSize: 13, background: "var(--card)", color: "var(--text)" }} />
       </div>

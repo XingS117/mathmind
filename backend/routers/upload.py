@@ -14,6 +14,8 @@ from backend.models.question import Question
 from backend.models.settings import UserSettings
 from backend.schemas.api_schemas import QuestionAnalysisResponse, QuestionConfirmResponse
 from backend.services.auth_service import get_user_id
+from backend.services.operations_service import client_ip
+from backend.services.rate_limit_service import rate_limiter
 from backend.services.llm_service import call_llm_with_config
 from backend.services.ocr_service import ocr_image
 from backend.services.knowmap_matcher import suggest_nodes
@@ -167,23 +169,16 @@ def _get_llm_config(uid: str) -> tuple[bool, dict | None]:
 
     env_key = _os.getenv("MATHMIND_LLM_API_KEY") or _os.getenv("DEEPSEEK_API_KEY")
     if env_key:
-        provider = _os.getenv("MATHMIND_LLM_PROVIDER", "deepseek")
-        model = _os.getenv("MATHMIND_LLM_MODEL", "deepseek-chat")
-        base_url = _os.getenv("MATHMIND_LLM_BASE_URL", "")
         return True, {
-            "model_provider": provider,
+            "model_provider": _os.getenv("MATHMIND_LLM_PROVIDER", "deepseek"),
             "api_key": env_key,
-            "model_name": model,
-            "base_url": base_url,
+            "model_name": _os.getenv("MATHMIND_LLM_MODEL", "deepseek-chat"),
+            "base_url": _os.getenv("MATHMIND_LLM_BASE_URL", ""),
         }
 
     db = SessionLocal()
     try:
         config_rec = db.query(UserSettings).filter(UserSettings.user_id == uid).first()
-        if not config_rec or not config_rec.api_key or config_rec.model_provider == "mock":
-            admin_rec = db.query(UserSettings).filter(UserSettings.user_id == "u_admin").first()
-            if admin_rec and admin_rec.api_key and admin_rec.model_provider != "mock":
-                config_rec = admin_rec
         has_llm = bool(config_rec and config_rec.api_key and config_rec.model_provider != "mock")
         if not has_llm:
             return False, None
@@ -197,21 +192,49 @@ def _get_llm_config(uid: str) -> tuple[bool, dict | None]:
         db.close()
 
 
+def _has_user_model_config(uid: str) -> bool:
+    db = SessionLocal()
+    try:
+        return db.query(UserSettings).filter(UserSettings.user_id == uid).first() is not None
+    finally:
+        db.close()
+
+
+def _require_upload_user(request: Request | None, db: DBSession) -> str:
+    if request is None:  # Direct local unit tests only; HTTP requests always authenticate.
+        return "u_default"
+    uid = get_user_id(request, db=db)
+    if uid == "u_default":
+        raise HTTPException(401, "请先登录后再上传题目")
+    return uid
+
+
+def _check_images(images: List[UploadFile]) -> None:
+    if not images or len(images) > 5:
+        raise HTTPException(400, "一次最多上传 5 张图片")
+    for image in images:
+        if image.content_type and image.content_type not in {"image/jpeg", "image/png", "image/webp"}:
+            raise HTTPException(400, "仅支持 JPG、PNG 或 WebP 图片")
+
+
 @router.post("/questions/analyze", response_model=QuestionAnalysisResponse)
 async def analyze_question(images: List[UploadFile] = File(alias="image"), request: Request = None, db: DBSession = Depends(get_db)):
-    if not images:
-        return JSONResponse(
-            {"success": False, "error": "请选择至少一张图片", "suggestion": "点击或拖拽图片到上传区域"},
-            status_code=400,
-        )
+    _check_images(images)
+    uid = _require_upload_user(request, db)
+    if request and not rate_limiter.allow(f"{uid}:{client_ip(request)}", "question_analyze", limit=20):
+        raise HTTPException(429, "题目分析请求过于频繁，请稍后再试")
 
-    uid = get_user_id(request, db=db) if request else "u_default"
+    if request and not _has_user_model_config(uid):
+        raise HTTPException(400, "请先在设置中配置个人模型")
+
     has_llm, llm_config = _get_llm_config(uid)
     raw_parts: list[str] = []
     source = "ocr"
 
     for idx, image in enumerate(images, start=1):
         img_bytes = await image.read()
+        if len(img_bytes) > 10 * 1024 * 1024:
+            raise HTTPException(400, "单张图片不能超过 10MB")
         part = ""
         try:
             part = await ocr_image(img_bytes)
@@ -312,7 +335,9 @@ async def analyze_question(images: List[UploadFile] = File(alias="image"), reque
 
 @router.post("/questions/confirm", response_model=QuestionConfirmResponse)
 async def confirm_question(data: ConfirmRequest, request: Request = None, db: DBSession = Depends(get_db)):
-    uid = get_user_id(request, db=db) if request else "u_default"
+    uid = _require_upload_user(request, db)
+    if request and not rate_limiter.allow(f"{uid}:{client_ip(request)}", "question_confirm", limit=30):
+        raise HTTPException(429, "题目入库请求过于频繁，请稍后再试")
     qid = f"q_{uuid.uuid4().hex[:12]}"
     _, llm_config = _get_llm_config(uid)
 
@@ -445,9 +470,8 @@ async def confirm_question(data: ConfirmRequest, request: Request = None, db: DB
 
 @router.get("/questions/{qid}/status")
 def question_status(qid: str, request: Request = None, db: DBSession = Depends(get_db)):
-    if request:
-        get_user_id(request, db=db)
-    q = db.query(Question).filter(Question.id == qid).first()
+    uid = _require_upload_user(request, db)
+    q = db.query(Question).filter(Question.id == qid, Question.user_id == uid).first()
     if not q:
         raise HTTPException(404, "Question not found")
     return {
