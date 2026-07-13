@@ -20,6 +20,7 @@ export default function DashboardPage({ onSelectQuestion, onNavigate, onSelectWe
   const [showWeak, setShowWeak] = useState(false);
   const [showDist, setShowDist] = useState(false);
   const [completingReviewId, setCompletingReviewId] = useState<string | null>(null);
+  const [reviewError, setReviewError] = useState("");
 
   const refreshDashboard = useCallback(() => {
     getDashboard().then(setData).catch(() => {});
@@ -31,9 +32,12 @@ export default function DashboardPage({ onSelectQuestion, onNavigate, onSelectWe
   const handleCompleteReview = async (review: DueReview) => {
     if (!window.confirm("确认已完成这次复习？")) return;
     setCompletingReviewId(review.id);
+    setReviewError("");
     try {
       await completeReview(review.id);
       refreshDashboard();
+    } catch {
+      setReviewError("复习提交失败，请稍后重试。");
     } finally {
       setCompletingReviewId(null);
     }
@@ -85,6 +89,7 @@ export default function DashboardPage({ onSelectQuestion, onNavigate, onSelectWe
             </button>
           </div>
         )}
+        {reviewError && <p role="alert" style={{ margin: "10px 0 0", color: "var(--error)", fontSize: 12 }}>{reviewError}</p>}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 16 }}>
         {stats.map((s, i) => (

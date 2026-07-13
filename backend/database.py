@@ -23,6 +23,7 @@ def init_db():
     import backend.models.question
     import backend.models.session
     import backend.models.mastery
+    import backend.models.mastery_change_event
     import backend.models.settings
     import backend.models.review
     Base.metadata.create_all(bind=engine)

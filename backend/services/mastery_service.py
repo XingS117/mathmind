@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session as DBSession
 
 from backend.models.mastery import Mastery
+from backend.models.mastery_change_event import MasteryChangeEvent
 from backend.models.question import Question
 from backend.models.review import ReviewSchedule
 from backend.models.session import Session
@@ -54,7 +55,7 @@ def _canonicalize(source: list) -> list[str]:
     return nodes
 
 
-def _apply_delta(db: DBSession, user_id: str, nodes: list[str], delta: float) -> None:
+def _apply_delta(db: DBSession, user_id: str, nodes: list[str], delta: float, source: str) -> None:
     for node_id in nodes:
         try:
             with db.begin_nested():
@@ -83,6 +84,14 @@ def _apply_delta(db: DBSession, user_id: str, nodes: list[str], delta: float) ->
                 last_reviewed=_utcnow(),
             )
         )
+        db.add(MasteryChangeEvent(
+            id=f"mce_{uuid.uuid4().hex[:12]}",
+            user_id=user_id,
+            node_id=node_id,
+            delta=delta,
+            source=source,
+            occurred_at=_utcnow(),
+        ))
 
 
 def apply_tutor_mastery(
@@ -104,7 +113,7 @@ def apply_tutor_mastery(
     if claimed.rowcount != 1:
         return MasteryUpdate(updated_nodes=[])
     nodes = canonical_question_nodes(question)
-    _apply_delta(db, user_id, nodes, delta)
+    _apply_delta(db, user_id, nodes, delta, source="tutor")
     return MasteryUpdate(updated_nodes=nodes, applied=True)
 
 
@@ -124,5 +133,9 @@ def apply_review_mastery(db: DBSession, review: ReviewSchedule) -> MasteryUpdate
         Question.user_id == review.user_id,
     ).first()
     nodes = canonical_question_nodes(question) if question else []
-    _apply_delta(db, review.user_id, nodes, REVIEW_DELTAS.get(review.review_round, 0.0))
+    _apply_delta(
+        db, review.user_id, nodes,
+        REVIEW_DELTAS.get(review.review_round, 0.0),
+        source="review",
+    )
     return MasteryUpdate(updated_nodes=nodes, applied=True)

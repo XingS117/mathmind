@@ -8,6 +8,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from backend.database import Base
+from backend.models.mastery_change_event import MasteryChangeEvent
 from backend.models.mastery import Mastery
 from backend.models.question import Question
 from backend.models.review import ReviewSchedule
@@ -68,12 +69,18 @@ class DashboardLearningLoopTest(unittest.TestCase):
                            review_type="comprehensive", scheduled_date=now),
             ReviewSchedule(id="rev_hidden", user_id="u2", question_id="q2", review_round=1,
                            review_type="quick", scheduled_date=now - timedelta(days=2)),
-            Mastery(id="m_recent", user_id="u1", node_id="node_recent", score=0.3,
+            Mastery(id="m_recent", user_id="u1", node_id="node_recent", score=0.8,
                     last_reviewed=now - timedelta(days=2)),
             Mastery(id="m_old", user_id="u1", node_id="node_old", score=0.8,
                     last_reviewed=now - timedelta(days=8)),
             Mastery(id="m_other", user_id="u2", node_id="node_other", score=0.9,
                     last_reviewed=now - timedelta(days=1)),
+            MasteryChangeEvent(id="event_recent", user_id="u1", node_id="node_recent", delta=0.3,
+                               source="tutor", occurred_at=now - timedelta(days=2)),
+            MasteryChangeEvent(id="event_old", user_id="u1", node_id="node_old", delta=0.4,
+                               source="review", occurred_at=now - timedelta(days=8)),
+            MasteryChangeEvent(id="event_other", user_id="u2", node_id="node_other", delta=0.9,
+                               source="review", occurred_at=now - timedelta(days=1)),
         ])
         self.db.commit()
 
@@ -88,6 +95,15 @@ class DashboardLearningLoopTest(unittest.TestCase):
         self.assertEqual([review["id"] for review in payload.due_reviews], ["rev_due", "rev_second", "rev_third"])
         self.assertEqual(payload.due_reviews[0]["question_id"], "q1")
         self.assertEqual(payload.mastery_change, 0.3)
+
+    def test_dashboard_ignores_historical_mastery_without_change_events(self):
+        self.db.query(MasteryChangeEvent).delete()
+        self.db.commit()
+
+        with patch("backend.routers.learn.get_user_id", return_value="u1"):
+            payload = dashboard(SimpleNamespace(headers={}), self.db)
+
+        self.assertEqual(payload.mastery_change, 0.0)
 
 
 if __name__ == "__main__":

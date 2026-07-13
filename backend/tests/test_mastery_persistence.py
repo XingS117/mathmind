@@ -12,6 +12,7 @@ from sqlalchemy.orm import sessionmaker
 
 from backend.database import Base, init_db
 from backend.models.mastery import Mastery
+from backend.models.mastery_change_event import MasteryChangeEvent
 from backend.models.question import Question
 from backend.models.review import ReviewSchedule
 from backend.models.session import Session
@@ -85,6 +86,19 @@ class MasteryPersistenceTest(unittest.TestCase):
         self.assertEqual(record.score, 0.3)
         self.assertEqual(record.total_sessions, 1)
         self.assertEqual(record.correct_sessions, 1)
+
+    def test_tutor_mastery_records_one_change_event_per_updated_node(self):
+        self.session.status = "completed"
+        self.db.commit()
+
+        apply_tutor_mastery(self.db, "u1", self.question, self.session, 0.3)
+        apply_tutor_mastery(self.db, "u1", self.question, self.session, 0.3)
+
+        events = self.db.query(MasteryChangeEvent).filter_by(user_id="u1").all()
+        self.assertEqual(len(events), 2)
+        self.assertEqual({event.node_id for event in events}, {"node_a", "node_b"})
+        self.assertEqual({event.delta for event in events}, {0.3})
+        self.assertEqual({event.source for event in events}, {"tutor"})
 
     def test_review_round_delta_is_idempotent(self):
         review = ReviewSchedule(
@@ -328,6 +342,11 @@ class MasteryPersistenceTest(unittest.TestCase):
             with legacy_engine.connect() as conn:
                 rows = conn.execute(text("SELECT * FROM mastery WHERE user_id = 'u_legacy'")).mappings().all()
                 indexes = conn.execute(text("PRAGMA index_list(mastery)")).mappings().all()
+                tables = {
+                    row["name"] for row in conn.execute(
+                        text("SELECT name FROM sqlite_master WHERE type = 'table'")
+                    ).mappings()
+                }
             self.assertEqual(len(rows), 1)
             self.assertEqual(rows[0]["id"], "m_a")
             self.assertEqual(rows[0]["score"], 0.8)
@@ -340,6 +359,7 @@ class MasteryPersistenceTest(unittest.TestCase):
                 [{"source": "first"}, {"source": "second"}],
             )
             self.assertIn("uq_mastery_user_node", {row["name"] for row in indexes})
+            self.assertIn("mastery_change_events", tables)
         finally:
             legacy_engine.dispose()
             os.unlink(path)

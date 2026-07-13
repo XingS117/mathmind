@@ -3,10 +3,12 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session as DBSession
 from sqlalchemy import func
+from sqlalchemy.exc import OperationalError
 from backend.database import get_db
 from backend.models.question import Question
 from backend.models.session import Session
 from backend.models.mastery import Mastery
+from backend.models.mastery_change_event import MasteryChangeEvent
 from backend.models.review import ReviewSchedule
 from backend.schemas.api_schemas import DashboardData
 from backend.services.auth_service import get_user_id
@@ -107,10 +109,16 @@ def dashboard(request: Request, db: DBSession = Depends(get_db)):
         ReviewSchedule.completed == False,
         ReviewSchedule.scheduled_date <= now,
     ).order_by(ReviewSchedule.scheduled_date).limit(3).all()
-    mastery_change = db.query(func.sum(Mastery.score)).filter(
-        Mastery.user_id == uid,
-        Mastery.last_reviewed >= now - timedelta(days=7),
-    ).scalar() or 0
+    try:
+        mastery_change = db.query(func.sum(MasteryChangeEvent.delta)).filter(
+            MasteryChangeEvent.user_id == uid,
+            MasteryChangeEvent.occurred_at >= now - timedelta(days=7),
+        ).scalar() or 0
+    except OperationalError as error:
+        # A process that has not restarted since this migration has no events yet.
+        if "mastery_change_events" not in str(error):
+            raise
+        mastery_change = 0
 
     return DashboardData(
         total_questions=q_count, total_sessions=s_count,
