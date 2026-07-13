@@ -36,3 +36,6 @@ _temp/
 
 # Local Git worktrees
 .worktrees/
+
+# Local brainstorming previews
+.superpowers/
