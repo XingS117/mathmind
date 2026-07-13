@@ -16,5 +16,6 @@ class Session(Base):
     diagnostic_json = Column(JSON, default=dict)
     mastery_achieved = Column(Boolean, default=False)
     variant_done = Column(Boolean, default=False)
+    mastery_applied_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     last_active = Column(DateTime, server_default=func.now(), onupdate=func.now())

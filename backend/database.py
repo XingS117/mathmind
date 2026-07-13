@@ -28,6 +28,7 @@ def init_db():
     _ensure_user_columns()
     _ensure_question_columns()
     _ensure_session_columns()
+    _ensure_review_columns()
 
 def _ensure_question_columns():
     columns = {
@@ -57,9 +58,20 @@ def _ensure_user_columns():
 def _ensure_session_columns():
     columns = {
         "diagnostic_json": "TEXT DEFAULT '{}'",
+        "mastery_applied_at": "DATETIME",
     }
     with engine.begin() as conn:
         existing = {row[1] for row in conn.execute(text("PRAGMA table_info(sessions)"))}
         for name, ddl in columns.items():
             if name not in existing:
                 conn.execute(text(f"ALTER TABLE sessions ADD COLUMN {name} {ddl}"))
+
+def _ensure_review_columns():
+    columns = {
+        "mastery_applied_at": "DATETIME",
+    }
+    with engine.begin() as conn:
+        existing = {row[1] for row in conn.execute(text("PRAGMA table_info(review_schedule)"))}
+        for name, ddl in columns.items():
+            if name not in existing:
+                conn.execute(text(f"ALTER TABLE review_schedule ADD COLUMN {name} {ddl}"))

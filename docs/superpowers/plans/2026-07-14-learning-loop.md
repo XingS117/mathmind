@@ -23,7 +23,7 @@
 
 **文件：** 创建 `backend/services/mastery_service.py`、`backend/tests/test_mastery_persistence.py`；修改 `backend/routers/tutor.py`、`backend/routers/review.py`。
 
-- [ ] **步骤 1：编写失败测试**
+- [x] **步骤 1：编写失败测试**
 
 ```python
 def test_completed_tutor_session_updates_each_question_node_once(self):
@@ -38,13 +38,13 @@ def test_user_cannot_complete_another_users_review(self):
     self.assertEqual(response.status_code, 404)
 ```
 
-- [ ] **步骤 2：运行测试验证失败**
+- [x] **步骤 2：运行测试验证失败**
 
 运行：`python -m unittest backend.tests.test_mastery_persistence`
 
 预期：FAIL，`apply_tutor_mastery` 不存在，复习完成未做用户范围过滤。
 
-- [ ] **步骤 3：实现最少服务和路由变更**
+- [x] **步骤 3：实现最少服务和路由变更**
 
 ```python
 def canonical_question_nodes(question: Question) -> list[str]: ...
@@ -54,7 +54,7 @@ def apply_review_mastery(db, review: ReviewSchedule) -> MasteryUpdate: ...
 
 `canonical_question_nodes` 优先使用 `knowmap_nodes`，没有时才使用知识点文本；去重并跳过空值。`apply_tutor_mastery` 在 `session.mastery_applied_at` 为空时才写入，新增该 nullable 时间列并通过现有迁移模式兼容旧库；分数限制在 0.0–1.0，增加 `total_sessions`，仅 `delta > 0` 时增加 `correct_sessions`。`tutor_message` 仅在状态从进行中首次变为完成时排 4 条复习并调用服务。复习完成查询必须同时匹配 `review_id` 和当前 `user_id`，首次完成时按轮次给 0.05 / 0.10 / 0.15 / 0.20 的上限内增量，重复提交不重复加分。
 
-- [ ] **步骤 4：运行通过测试和后端回归**
+- [x] **步骤 4：运行通过测试和后端回归**
 
 ```powershell
 python -m unittest backend.tests.test_mastery_persistence
@@ -63,7 +63,7 @@ python -m unittest discover -s backend/tests -p 'test_*.py'
 
 预期：所有测试 `OK`。
 
-- [ ] **步骤 5：提交**
+- [x] **步骤 5：提交**
 
 ```bash
 git add backend/services/mastery_service.py backend/tests/test_mastery_persistence.py backend/routers/tutor.py backend/routers/review.py backend/models/session.py backend/database.py

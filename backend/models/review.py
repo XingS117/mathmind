@@ -11,4 +11,5 @@ class ReviewSchedule(Base):
     scheduled_date = Column(DateTime)
     completed = Column(Boolean, default=False)
     completed_date = Column(DateTime, nullable=True)
+    mastery_applied_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
