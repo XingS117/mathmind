@@ -121,7 +121,7 @@ function ModelConfig() {
   );
 }
 
-function ChangePassword() {
+export function ChangePassword() {
   const [oldPwd, setOldPwd] = useState("");
   const [newPwd, setNewPwd] = useState("");
   const [confirmPwd, setConfirmPwd] = useState("");

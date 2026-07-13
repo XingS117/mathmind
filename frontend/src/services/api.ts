@@ -25,6 +25,13 @@ async function apiJson<T>(path: string, init: Init = {}): Promise<T> {
   return r.json() as Promise<T>;
 }
 
+async function apiJsonOrThrow<T>(path: string, init: Init = {}): Promise<T> {
+  const r = await apiFetch(path, init);
+  const data = await r.json().catch(() => ({})) as { detail?: unknown } & T;
+  if (!r.ok) throw new Error(typeof data.detail === "string" ? data.detail : "请求失败");
+  return data;
+}
+
 export interface AnalysisResult {
   success: boolean;
   source?: string;
@@ -60,20 +67,61 @@ export interface ConfirmPayload {
 
 export interface AuthUser {
   id: string;
+  username?: string;
   name: string;
   role: string;
   school_level: string;
 }
 
+export interface AccountOverview {
+  id: string;
+  username: string;
+  name: string;
+  is_active: boolean;
+  created_at: string | null;
+  login_count: number;
+  last_login_at: string | null;
+  last_ip_masked: string | null;
+  user_agent_family: string | null;
+}
+
 export async function login(username: string, password: string): Promise<{ token: string; user: AuthUser }> {
-  const r = await apiFetch("/auth/login", { method: "POST", json: { username, password } });
-  const d = await r.json();
-  if (!r.ok) throw new Error(d.detail || "登录失败");
-  return d;
+  const session = await apiJsonOrThrow<{ token: string; user: AuthUser }>("/auth/login", { method: "POST", json: { username, password } });
+  return { ...session, user: { ...session.user, username } };
+}
+
+export async function register(username: string, password: string, name: string): Promise<{ user: AuthUser }> {
+  return apiJsonOrThrow<{ user: AuthUser }>("/auth/register", { method: "POST", json: { username, password, name } });
 }
 
 export async function fetchMe(): Promise<AuthUser> {
   return apiJson<AuthUser>("/auth/me");
+}
+
+export async function updateProfile(name: string): Promise<AuthUser> {
+  return apiJsonOrThrow<AuthUser>("/auth/profile", { method: "PUT", json: { name } });
+}
+
+export async function changePassword(oldPassword: string, newPassword: string): Promise<{ message: string }> {
+  return apiJsonOrThrow<{ message: string }>("/auth/password", {
+    method: "PUT", json: { old_password: oldPassword, new_password: newPassword },
+  });
+}
+
+export async function getAccountsOverview(): Promise<{ accounts: AccountOverview[] }> {
+  return apiJsonOrThrow<{ accounts: AccountOverview[] }>("/admin/accounts-overview");
+}
+
+export async function setAccountActive(userId: string, isActive: boolean): Promise<{ id: string; is_active: boolean }> {
+  return apiJsonOrThrow<{ id: string; is_active: boolean }>(`/admin/users/${userId}/status`, {
+    method: "PATCH", json: { is_active: isActive },
+  });
+}
+
+export async function resetAccountPassword(userId: string, newPassword: string): Promise<{ message: string }> {
+  return apiJsonOrThrow<{ message: string }>(`/admin/users/${userId}/reset-password`, {
+    method: "POST", json: { new_password: newPassword },
+  });
 }
 
 export function isLoggedIn(): boolean {

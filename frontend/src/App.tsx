@@ -6,9 +6,11 @@ import DashboardPage from "./pages/DashboardPage"
 import SettingsPage from "./pages/SettingsPage"
 import WenXingLogo from "./components/WenXingLogo"
 import LoginPage from "./pages/LoginPage";
+import AccountPage from "./pages/AccountPage";
+import AdminAccountsPage from "./pages/AdminAccountsPage";
 import { getActiveSession, uploadQuestion, fetchMe, logout, AuthUser } from "./services/api";
 
-type Page = "dashboard" | "upload" | "knowmap" | "tutor" | "settings" | "login";
+type Page = "dashboard" | "upload" | "knowmap" | "tutor" | "settings" | "login" | "account" | "adminAccounts";
 type Grade = "初中" | "高中";
 
 export default function App() {
@@ -62,6 +64,7 @@ export default function App() {
   };
   const handleLogout = () => {
     logout();
+    localStorage.removeItem("username");
     setUser(null);
     setPage('dashboard');
   };
@@ -75,7 +78,8 @@ export default function App() {
     { id: "upload" as Page, label: "入库" },
     { id: "knowmap" as Page, label: "图谱" },
     { id: "settings" as Page, label: "设置" },
-    { id: "login" as Page, label: user ? user.name : "登录" },
+    ...(user?.role === "admin" ? [{ id: "adminAccounts" as Page, label: "管理" }] : []),
+    { id: user ? "account" as Page : "login" as Page, label: user ? user.name : "登录" },
   ];
 
   return (
@@ -139,6 +143,8 @@ export default function App() {
         {page === "upload" && <ImageUpload grade={grade} onImage={handleUpload} loading={uploading} onConfirm={handleConfirm} />}
         {page === "knowmap" && <KnowMapPage grade={grade} focusWeakPoint={focusedWeakPoint} onSelectQuestion={handleSelect} />}
         {page === "login" && <LoginPage onLogin={handleLogin} />}
+        {page === "account" && user && <AccountPage user={user} onUserUpdated={setUser} onOpenAdmin={() => setPage("adminAccounts")} />}
+        {page === "adminAccounts" && user?.role === "admin" && <AdminAccountsPage />}
         {page === "settings" && <SettingsPage />}
         {page === "tutor" && selectedQid && <TutorPage questionId={selectedQid} onSelectQuestion={handleSelect} />}
       </main>
