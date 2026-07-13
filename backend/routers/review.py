@@ -58,5 +58,4 @@ def schedule_reviews(user_id: str, question_id: str, db: DBSession):
         r = ReviewSchedule(id=rid, user_id=user_id, question_id=question_id,
             review_round=i+1, review_type=REVIEW_TYPES[i], scheduled_date=scheduled)
         db.add(r)
-    db.commit()
     return True

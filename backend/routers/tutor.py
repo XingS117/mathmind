@@ -88,18 +88,22 @@ def tutor_message(req: TutorMessageRequest, request: Request, db: DBSession = De
     result = process_message(db_session, req.message, req.intent, steps, db)
 
     # If session completed, find variants (related questions)
-    if was_in_progress and db_session.status == "completed" and not db_session.mastery_applied_at:
-        apply_tutor_mastery(db, uid, question, db_session, result.get("mastery_update") or 0.0)
-        schedule_reviews(uid, question.id, db)
-        result["reviews_scheduled"] = True
-        nodes = _parse_json(question.knowmap_nodes)
-        if nodes:
-            related = db.query(Question).filter(
-                Question.id != question.id,
-                Question.user_id == uid,
-                Question.status == "complete"
-            ).limit(3).all()
-            result["variants"] = [q.id for q in related]
+    if was_in_progress and db_session.status == "completed":
+        mastery_update = apply_tutor_mastery(db, uid, question, db_session, result.get("mastery_update") or 0.0)
+        if mastery_update.applied:
+            schedule_reviews(uid, question.id, db)
+            result["reviews_scheduled"] = True
+            nodes = _parse_json(question.knowmap_nodes)
+            if nodes:
+                related = db.query(Question).filter(
+                    Question.id != question.id,
+                    Question.user_id == uid,
+                    Question.status == "complete"
+                ).limit(3).all()
+                result["variants"] = [q.id for q in related]
+        else:
+            result["reviews_scheduled"] = False
+        db.commit()
     else:
         db.commit()
         if result.get("type") == "complete":

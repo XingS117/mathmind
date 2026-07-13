@@ -29,6 +29,7 @@ def init_db():
     _ensure_question_columns()
     _ensure_session_columns()
     _ensure_review_columns()
+    _ensure_mastery_indexes()
 
 def _ensure_question_columns():
     columns = {
@@ -75,3 +76,9 @@ def _ensure_review_columns():
         for name, ddl in columns.items():
             if name not in existing:
                 conn.execute(text(f"ALTER TABLE review_schedule ADD COLUMN {name} {ddl}"))
+
+def _ensure_mastery_indexes():
+    with engine.begin() as conn:
+        conn.execute(text(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_mastery_user_node ON mastery (user_id, node_id)"
+        ))

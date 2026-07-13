@@ -1,4 +1,6 @@
 import json
+import os
+import tempfile
 import unittest
 from unittest.mock import patch
 from datetime import datetime, timedelta
@@ -14,6 +16,7 @@ from backend.models.review import ReviewSchedule
 from backend.models.session import Session
 from backend.models.user import User
 from backend.routers.review import complete_review
+from backend.routers.review import schedule_reviews
 from backend.routers.tutor import create_session, tutor_message
 from backend.schemas.api_schemas import TutorMessageRequest, TutorSessionCreate
 from backend.services.mastery_service import (
@@ -68,6 +71,8 @@ class MasteryPersistenceTest(unittest.TestCase):
         self.assertEqual(canonical_question_nodes(question), ["kp_a"])
 
     def test_completed_tutor_session_updates_each_question_node_once(self):
+        self.session.status = "completed"
+        self.db.commit()
         result = apply_tutor_mastery(self.db, "u1", self.question, self.session, 0.3)
         self.assertEqual(result.updated_nodes, ["node_a", "node_b"])
         self.assertEqual(
@@ -170,6 +175,101 @@ class MasteryPersistenceTest(unittest.TestCase):
 
         self.assertEqual(create_raised.exception.status_code, 404)
         self.assertEqual(message_raised.exception.status_code, 404)
+
+    def test_two_database_sessions_claim_tutor_mastery_once(self):
+        fd, path = tempfile.mkstemp(suffix=".db")
+        os.close(fd)
+        engine = create_engine(f"sqlite:///{path}")
+        factory = sessionmaker(bind=engine)
+        first = second = verify = None
+        try:
+            Base.metadata.create_all(engine)
+            setup = factory()
+            setup.add_all([
+                User(id="u_concurrent", username="concurrent", name="Student"),
+                Question(
+                    id="q_concurrent", user_id="u_concurrent", text="question",
+                    knowmap_nodes=json.dumps(["node_a"]), status="complete",
+                ),
+                Session(
+                    id="s_concurrent", user_id="u_concurrent", question_id="q_concurrent",
+                    status="completed",
+                ),
+            ])
+            setup.commit()
+            setup.close()
+
+            first, second = factory(), factory()
+            second_question = second.get(Question, "q_concurrent")
+            second_session = second.get(Session, "s_concurrent")
+            first_update = apply_tutor_mastery(
+                first, "u_concurrent", first.get(Question, "q_concurrent"),
+                first.get(Session, "s_concurrent"), 0.3,
+            )
+            if first_update.updated_nodes:
+                schedule_reviews("u_concurrent", "q_concurrent", first)
+            first.commit()
+            second_update = apply_tutor_mastery(
+                second, "u_concurrent", second_question, second_session, 0.3,
+            )
+            second.commit()
+
+            verify = factory()
+            mastery = verify.query(Mastery).filter_by(user_id="u_concurrent", node_id="node_a").one()
+            self.assertEqual(second_update.updated_nodes, [])
+            self.assertEqual(mastery.score, 0.3)
+            self.assertEqual(mastery.total_sessions, 1)
+            self.assertEqual(verify.query(ReviewSchedule).filter_by(question_id="q_concurrent").count(), 4)
+            verify.close()
+        finally:
+            for db in (verify, first, second):
+                if db:
+                    db.close()
+            engine.dispose()
+            os.unlink(path)
+
+    def test_two_database_sessions_claim_review_mastery_once(self):
+        fd, path = tempfile.mkstemp(suffix=".db")
+        os.close(fd)
+        engine = create_engine(f"sqlite:///{path}")
+        factory = sessionmaker(bind=engine)
+        first = second = verify = None
+        try:
+            Base.metadata.create_all(engine)
+            setup = factory()
+            setup.add_all([
+                User(id="u_concurrent", username="concurrent", name="Student"),
+                Question(
+                    id="q_concurrent", user_id="u_concurrent", text="question",
+                    knowmap_nodes=json.dumps(["node_a"]), status="complete",
+                ),
+                ReviewSchedule(
+                    id="rev_concurrent", user_id="u_concurrent", question_id="q_concurrent",
+                    review_round=2,
+                ),
+            ])
+            setup.commit()
+            setup.close()
+
+            first, second = factory(), factory()
+            second_review = second.get(ReviewSchedule, "rev_concurrent")
+            apply_review_mastery(first, first.get(ReviewSchedule, "rev_concurrent"))
+            first.commit()
+            second_update = apply_review_mastery(second, second_review)
+            second.commit()
+
+            verify = factory()
+            mastery = verify.query(Mastery).filter_by(user_id="u_concurrent", node_id="node_a").one()
+            self.assertEqual(second_update.updated_nodes, [])
+            self.assertEqual(mastery.score, 0.1)
+            self.assertEqual(mastery.total_sessions, 1)
+            verify.close()
+        finally:
+            for db in (verify, first, second):
+                if db:
+                    db.close()
+            engine.dispose()
+            os.unlink(path)
 
 
 if __name__ == "__main__":
