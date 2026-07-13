@@ -1,9 +1,11 @@
 import uuid, logging
+from sqlalchemy import func
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session as DBSession
 from backend.database import get_db
 from backend.models.user import User
+from backend.models.operations import AdminAuditEvent, LoginEvent, RuntimeEvent
 from backend.services.auth_service import hash_password, get_user_id
 from fastapi import Request
 
@@ -15,6 +17,14 @@ class CreateUserRequest(BaseModel):
     password: str
     name: str
     school_level: str = "高中"
+
+
+class UpdateUserStatusRequest(BaseModel):
+    is_active: bool
+
+
+class ResetPasswordRequest(BaseModel):
+    new_password: str
 
 def require_admin(request: Request, db: DBSession = Depends(get_db)):
     uid = get_user_id(request)
@@ -55,3 +65,78 @@ def delete_user(user_id: str, request: Request, db: DBSession = Depends(get_db))
     db.delete(user)
     db.commit()
     return {"message": "用户已删除"}
+
+
+def _audit(db: DBSession, admin_user_id: str, target_user_id: str, action: str) -> None:
+    db.add(AdminAuditEvent(
+        id=f"ae_{uuid.uuid4().hex}", admin_user_id=admin_user_id,
+        target_user_id=target_user_id, action=action,
+    ))
+
+
+@router.patch("/admin/users/{user_id}/status")
+def update_user_status(user_id: str, req: UpdateUserStatusRequest, request: Request, db: DBSession = Depends(get_db)):
+    admin = require_admin(request, db)
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(404, "用户不存在")
+    if user.id == admin.id and not req.is_active:
+        raise HTTPException(400, "不能停用自己的账户")
+    user.is_active = req.is_active
+    _audit(db, admin.id, user.id, "enable_user" if req.is_active else "disable_user")
+    db.commit()
+    return {"id": user.id, "is_active": user.is_active}
+
+
+@router.post("/admin/users/{user_id}/reset-password")
+def reset_password(user_id: str, req: ResetPasswordRequest, request: Request, db: DBSession = Depends(get_db)):
+    admin = require_admin(request, db)
+    if not 8 <= len(req.new_password) <= 128:
+        raise HTTPException(400, "密码长度需为 8-128 位")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(404, "用户不存在")
+    user.password_hash = hash_password(req.new_password)
+    _audit(db, admin.id, user.id, "reset_password")
+    db.commit()
+    return {"message": "密码已重置"}
+
+
+@router.get("/admin/accounts-overview")
+def accounts_overview(request: Request, db: DBSession = Depends(get_db)):
+    require_admin(request, db)
+    users = db.query(User).order_by(User.created_at.desc()).all()
+    accounts = []
+    for user in users:
+        logins = db.query(LoginEvent).filter(LoginEvent.user_id == user.id, LoginEvent.outcome == "success")
+        latest = logins.order_by(LoginEvent.occurred_at.desc()).first()
+        accounts.append({
+            "id": user.id, "username": user.username, "name": user.name,
+            "is_active": user.is_active, "created_at": str(user.created_at) if user.created_at else None,
+            "login_count": logins.count(),
+            "last_login_at": str(latest.occurred_at) if latest and latest.occurred_at else None,
+            "last_ip_masked": latest.ip_masked if latest else None,
+            "user_agent_family": latest.user_agent_family if latest else None,
+        })
+    return {"accounts": accounts}
+
+
+@router.get("/admin/runtime-overview")
+def runtime_overview(request: Request, db: DBSession = Depends(get_db)):
+    require_admin(request, db)
+    rows = (
+        db.query(
+            RuntimeEvent.feature, RuntimeEvent.engine_kind, RuntimeEvent.provider,
+            RuntimeEvent.model_name, RuntimeEvent.outcome,
+            func.count(RuntimeEvent.id).label("count"),
+            func.avg(RuntimeEvent.duration_ms).label("avg_duration_ms"),
+        )
+        .group_by(RuntimeEvent.feature, RuntimeEvent.engine_kind, RuntimeEvent.provider, RuntimeEvent.model_name, RuntimeEvent.outcome)
+        .order_by(RuntimeEvent.feature, RuntimeEvent.engine_kind, RuntimeEvent.provider, RuntimeEvent.model_name, RuntimeEvent.outcome)
+        .all()
+    )
+    return {"events": [{
+        "feature": row.feature, "engine_kind": row.engine_kind, "provider": row.provider,
+        "model_name": row.model_name, "outcome": row.outcome, "count": row.count,
+        "avg_duration_ms": round(row.avg_duration_ms) if row.avg_duration_ms is not None else None,
+    } for row in rows]}

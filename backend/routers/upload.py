@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 import uuid
 from typing import List
 
@@ -8,7 +9,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session as DBSession
 
-from backend.database import get_db
+from backend.database import get_db, SessionLocal
 from backend.models.question import Question
 from backend.models.settings import UserSettings
 from backend.schemas.api_schemas import QuestionAnalysisResponse, QuestionConfirmResponse
@@ -17,9 +18,24 @@ from backend.services.llm_service import call_llm_with_config
 from backend.services.ocr_service import ocr_image
 from backend.services.knowmap_matcher import suggest_nodes
 from backend.services.knowmap_service import get_tree
+from backend.services.operations_service import record_runtime_event
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["upload"])
+
+
+def _record_vision_runtime(config: dict, outcome: str, started: float, error_code: str | None = None) -> None:
+    db = SessionLocal()
+    try:
+        record_runtime_event(
+            db, feature="ocr", engine_kind="vision", provider=config.get("model_provider", ""),
+            model_name=config.get("model_name", ""), outcome=outcome,
+            duration_ms=round((time.monotonic() - started) * 1000), error_code=error_code,
+        )
+    except Exception:
+        logger.warning("Failed to record vision OCR runtime event", exc_info=True)
+    finally:
+        db.close()
 
 
 class ConfirmRequest(BaseModel):
@@ -201,16 +217,22 @@ async def analyze_question(images: List[UploadFile] = File(alias="image"), reque
         if not part and llm_config:
             provider = llm_config.get("model_provider", "")
             if provider in ("openai", "gemini", "qwen"):
+                started = time.monotonic()
+                vision_outcome = "success"
+                vision_error = None
                 try:
                     from backend.services.vision_ocr_service import ocr_with_vision_llm
-
                     vision_text = await ocr_with_vision_llm(img_bytes, llm_config)
                     if vision_text:
                         part = vision_text
                         source = "vision"
                         logger.info(f"Vision OCR result: {vision_text[:60]}...")
                 except Exception as e:
+                    vision_outcome = "error"
+                    vision_error = type(e).__name__
                     logger.warning(f"Vision OCR failed: {e}")
+                finally:
+                    _record_vision_runtime(llm_config, vision_outcome, started, vision_error)
 
         if part:
             raw_parts.append(f"--- 第 {idx} 张 ---\n{part}" if len(images) > 1 else part)

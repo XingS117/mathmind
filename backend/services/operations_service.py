@@ -7,7 +7,7 @@ import uuid
 from fastapi import Request
 from sqlalchemy.orm import Session
 
-from backend.models.operations import LoginEvent
+from backend.models.operations import LoginEvent, RuntimeEvent
 
 
 # The random development fallback changes at process restart. Production deployment
@@ -62,5 +62,29 @@ def record_login_event(db: Session, request: Request, outcome: str, user_id: str
         ip_masked=mask_ip(ip),
         ip_fingerprint=fingerprint_ip(ip),
         user_agent_family=user_agent_family(request.headers.get("user-agent", "")),
+    ))
+    db.commit()
+
+
+def record_runtime_event(
+    db: Session,
+    feature: str,
+    engine_kind: str,
+    provider: str,
+    model_name: str,
+    outcome: str,
+    duration_ms: int | None,
+    error_code: str | None = None,
+) -> None:
+    """Persist only approved operational metadata, never request content or secrets."""
+    db.add(RuntimeEvent(
+        id=f"re_{uuid.uuid4().hex}",
+        feature=str(feature or "")[:64],
+        engine_kind=str(engine_kind or "")[:32],
+        provider=str(provider or "")[:64],
+        model_name=str(model_name or "")[:128],
+        outcome=str(outcome or "unknown")[:32],
+        duration_ms=max(0, int(duration_ms)) if duration_ms is not None else None,
+        error_code=str(error_code)[:64] if error_code else None,
     ))
     db.commit()

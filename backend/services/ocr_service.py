@@ -18,7 +18,11 @@ import logging
 import os
 import tempfile
 import threading
+import time
 from typing import Any
+
+from backend.database import SessionLocal
+from backend.services.operations_service import record_runtime_event
 
 logger = logging.getLogger(__name__)
 
@@ -206,4 +210,23 @@ def _sync_ocr_image(image_bytes: bytes) -> str:
 
 async def ocr_image(image_bytes: bytes) -> str:
     """Async facade that runs the blocking OCR call in a worker thread."""
-    return await asyncio.to_thread(_sync_ocr_image, image_bytes)
+    started = time.monotonic()
+    outcome = "success"
+    error_code = None
+    try:
+        return await asyncio.to_thread(_sync_ocr_image, image_bytes)
+    except Exception as exc:
+        outcome = "error"
+        error_code = str(exc).split(":", 1)[0]
+        raise
+    finally:
+        db = SessionLocal()
+        try:
+            record_runtime_event(
+                db, feature="ocr", engine_kind="ocr", provider="paddleocr", model_name="PaddleOCR",
+                outcome=outcome, duration_ms=round((time.monotonic() - started) * 1000), error_code=error_code,
+            )
+        except Exception:  # Telemetry must not affect OCR requests.
+            logger.warning("Failed to record OCR runtime event", exc_info=True)
+        finally:
+            db.close()
