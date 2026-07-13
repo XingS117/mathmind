@@ -75,25 +75,28 @@ def register(req: RegisterRequest, request: Request, db: DBSession = Depends(get
 
 @router.post("/auth/login")
 def login(req: LoginRequest, request: Request, db: DBSession = Depends(get_db)):
-    if not rate_limiter.allow(client_ip(request), "login", limit=5):
-        record_login_event(db, request, "rate_limited")
-        raise HTTPException(429, "登录请求过于频繁，请稍后再试")
     user = db.query(User).filter(User.username == req.username).first()
     if not user or not user.password_hash:
-        record_login_event(db, request, "failed")
-        raise HTTPException(401, "用户名或密码错误")
+        _reject_login(db, request, "failed")
     if not verify_password(req.password, user.password_hash):
-        record_login_event(db, request, "failed", user.id)
-        raise HTTPException(401, "用户名或密码错误")
+        _reject_login(db, request, "failed", user.id)
     if not user.is_active:
-        record_login_event(db, request, "disabled", user.id)
-        raise HTTPException(403, "账户已停用")
+        _reject_login(db, request, "disabled", user.id, status_code=403, detail="账户已停用")
     if needs_password_upgrade(user.password_hash):
         user.password_hash = hash_password(req.password)
         db.commit()
     record_login_event(db, request, "success", user.id)
     token = create_token(user.id)
     return {"token": token, "user": {"id": user.id, "name": user.name, "role": user.role, "school_level": user.school_level}}
+
+
+def _reject_login(db: DBSession, request: Request, outcome: str, user_id: str | None = None,
+                  status_code: int = 401, detail: str = "用户名或密码错误") -> None:
+    if not rate_limiter.allow(client_ip(request), "login_failed", limit=5):
+        record_login_event(db, request, "rate_limited", user_id)
+        raise HTTPException(429, "登录请求过于频繁，请稍后再试")
+    record_login_event(db, request, outcome, user_id)
+    raise HTTPException(status_code, detail)
 
 @router.get("/auth/me")
 def get_me(request: Request, db: DBSession = Depends(get_db)):

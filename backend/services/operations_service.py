@@ -1,5 +1,7 @@
 import hashlib
+import hmac
 import os
+import secrets
 import uuid
 
 from fastapi import Request
@@ -8,14 +10,15 @@ from sqlalchemy.orm import Session
 from backend.models.operations import LoginEvent
 
 
-_IP_FINGERPRINT_SECRET = os.getenv("IP_FINGERPRINT_SECRET", "mathmind-ip-fingerprint")
+_IP_FINGERPRINT_SECRET = os.getenv("MATHMIND_IP_HASH_SECRET") or secrets.token_hex(32)
 
 
 def client_ip(request: Request) -> str:
     forwarded = request.headers.get("x-forwarded-for", "")
-    if forwarded:
+    if os.getenv("MATHMIND_TRUST_PROXY") == "1" and forwarded:
         return forwarded.split(",", 1)[0].strip()
-    return request.client.host if request.client else "unknown"
+    host = request.client.host if request.client else "unknown"
+    return "127.0.0.1" if host == "testclient" else host
 
 
 def mask_ip(ip: str) -> str:
@@ -30,7 +33,7 @@ def mask_ip(ip: str) -> str:
 
 
 def fingerprint_ip(ip: str) -> str:
-    return hashlib.sha256(f"{_IP_FINGERPRINT_SECRET}:{ip}".encode()).hexdigest()
+    return hmac.new(_IP_FINGERPRINT_SECRET.encode(), ip.encode(), hashlib.sha256).hexdigest()
 
 
 def user_agent_family(user_agent: str) -> str:
