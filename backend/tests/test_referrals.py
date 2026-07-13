@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 from starlette.requests import Request
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 from backend.database import Base
@@ -135,23 +135,32 @@ class ReferralFlowTest(unittest.TestCase):
         self.assertEqual(self.db.query(ReferralAttribution).count(), 0)
 
     def test_concurrent_link_creation_returns_one_stable_link(self):
-        barrier = threading.Barrier(2)
+        owner_id = self.owner.id
+        insert_barrier = threading.Barrier(2)
+
+        def wait_until_both_workers_have_observed_no_link(*_args):
+            # Mapper insertion occurs only after create_or_get_referral's initial
+            # lookup returned no link, so this forces the unique-conflict path.
+            insert_barrier.wait(timeout=5)
 
         def create_link():
             db = self.SessionLocal()
             try:
-                barrier.wait()
-                link = create_or_get_referral(db, self.owner.id)
+                link = create_or_get_referral(db, owner_id)
                 db.commit()
                 return link.code
             finally:
                 db.close()
 
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            codes = list(executor.map(lambda _: create_link(), range(2)))
+        event.listen(ReferralLink, "before_insert", wait_until_both_workers_have_observed_no_link)
+        try:
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                codes = list(executor.map(lambda _: create_link(), range(2)))
+        finally:
+            event.remove(ReferralLink, "before_insert", wait_until_both_workers_have_observed_no_link)
 
         self.assertEqual(codes[0], codes[1])
-        self.assertEqual(self.db.query(ReferralLink).filter_by(owner_user_id=self.owner.id).count(), 1)
+        self.assertEqual(self.db.query(ReferralLink).filter_by(owner_user_id=owner_id).count(), 1)
 
     def test_register_upload_and_completed_tutor_mark_attributed_user_once(self):
         link = create_or_get_referral(self.db, self.owner.id)
