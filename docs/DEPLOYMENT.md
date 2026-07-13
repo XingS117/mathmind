@@ -45,6 +45,26 @@ powershell -ExecutionPolicy Bypass -File scripts\serve.ps1
 
 若不设置 env，backend 会回退到读 SQLite `UserSettings` 表（也就是"设置页"配的 key），旧的部署方式仍然可用。
 
+## 生产安全配置与每日备份
+
+生产运行前，从 `.env.example` 创建 `.env`，并为下列值生成各不相同的长随机字符串；`.env` 已被 Git 忽略，不能提交：
+
+```powershell
+Copy-Item .env.example .env
+# 编辑 .env：保留 MATHMIND_ENV=production，并填写 JWT_SECRET、MATHMIND_IP_HASH_SECRET、ADMIN_PASS
+notepad .env
+```
+
+生产环境缺少 `JWT_SECRET`、`MATHMIND_IP_HASH_SECRET`、`ADMIN_PASS`，或仍使用 JWT 开发默认值/`admin123` 时，服务会拒绝启动。开发环境允许受控回退，并在日志中给出警告；不要将开发回退用于联网部署。
+
+在 Windows 计划任务中每天运行一次（例如 02:30）：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\backup.ps1
+```
+
+脚本用 SQLite 在线备份 API 写入 `data\backups\mathmind-时间戳.db` 和对应 `.sha256`，只保留最新 7 组，绝不会删除源数据库。恢复演练：先停止服务，将备份复制为 `data\mathmind.db`（保留故障库的副本），再启动服务；可先用 `python -c "import sqlite3; print(sqlite3.connect('data/backups/备份名.db').execute('select count(*) from users').fetchone())"` 检查备份可读。
+
 ## 开机自启（Windows 计划任务）
 
 ```powershell

@@ -1,10 +1,14 @@
 ﻿import os, sys, logging
+from pathlib import Path
+from dotenv import load_dotenv
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session as DBSession
 from backend.database import init_db, get_db, SessionLocal
 from backend.routers import knowmap, upload, tutor, learn, settings, auth, admin, review, health
+from backend.services.runtime_config import load_runtime_config
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -13,6 +17,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 
 @app.on_event("startup")
 def startup():
+    runtime_config = load_runtime_config()
     init_db()
     db = SessionLocal()
     from backend.models.user import User
@@ -21,14 +26,12 @@ def startup():
     from backend.services.seed_service import seed_database
     seed_database(db)
     from backend.services.auth_service import hash_password
-    import os as _os
     admin_user = db.query(User).filter(User.role == "admin").first()
     if not admin_user:
-        admin_pass = _os.getenv("ADMIN_PASS", "admin123")
-        admin = User(id="u_admin", username="admin", password_hash=hash_password(admin_pass), name="管理员", role="admin", school_level="高中")
+        admin = User(id="u_admin", username="admin", password_hash=hash_password(runtime_config.admin_pass), name="管理员", role="admin", school_level="高中")
         db.add(admin)
         db.commit()
-        logger.info(f"Default admin created (password: {admin_pass})")
+        logger.info("Initial administrator account created")
     db.close()
     from backend.services.ocr_service import init_ocr_background
     init_ocr_background()

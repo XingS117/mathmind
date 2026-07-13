@@ -2,8 +2,9 @@ import os, uuid, hashlib, hmac, secrets
 from datetime import datetime, timedelta
 import jwt
 from fastapi import HTTPException, Request
+from backend.services.runtime_config import DEFAULT_JWT_SECRET
 
-JWT_SECRET = os.getenv("JWT_SECRET", "mathmind-dev-secret-key-change-in-prod")
+JWT_SECRET = os.getenv("JWT_SECRET", DEFAULT_JWT_SECRET)
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRY_DAYS = 90
 

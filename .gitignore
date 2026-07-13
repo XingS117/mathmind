@@ -16,6 +16,7 @@ data/*.db
 data/vectors/
 data/*.log
 data/*.err.log
+data/backups/
 data/chrome-*.png
 
 # Unrelated local research artifacts

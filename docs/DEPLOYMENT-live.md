@@ -57,6 +57,23 @@ MATHMIND_LLM_MODEL=deepseek-chat
 MATHMIND_LLM_BASE_URL=https://api.deepseek.com/v1
 ```
 
+还必须配置以下生产安全变量（使用不同的长随机字符串；`ADMIN_PASS` 不能是 `admin123`）：
+
+```ini
+MATHMIND_ENV=production
+JWT_SECRET=replace-with-a-long-unique-secret
+MATHMIND_IP_HASH_SECRET=replace-with-another-long-unique-secret
+ADMIN_PASS=replace-with-a-strong-initial-admin-password
+```
+
+```bash
+sudo chmod 600 /data/mathmind/app/.env
+sudo systemctl restart mathmind
+sudo journalctl -u mathmind -n 50 --no-pager
+```
+
+生产环境缺少这些安全变量或仍使用开发默认值时，服务会拒绝启动；日志不会打印管理员密码。
+
 优先级：**env > SQLite UserSettings**，见 `backend/routers/upload.py:_get_llm_config`，测试 `backend/tests/test_llm_env_override.py`。
 
 ## 更新流程（源码变更后）
@@ -93,8 +110,17 @@ sudo systemctl restart mathmind
 ## 数据库备份
 
 ```bash
-cp /data/mathmind/app/mathmind.db /data/mathmind/backup-$(date +%Y%m%d).db
+cd /data/mathmind/app
+pwsh -File scripts/backup.ps1
 ```
+
+该脚本通过 Python SQLite 在线备份 API 创建 `data/backups/mathmind-时间戳.db` 与 SHA-256 校验文件，并保留最新 7 组。Ubuntu 上可用 cron 每天执行一次，例如：
+
+```cron
+30 2 * * * cd /data/mathmind/app && /usr/bin/pwsh -File scripts/backup.ps1 >> /var/log/mathmind-backup.log 2>&1
+```
+
+恢复前先停服务并保留故障库：`sudo systemctl stop mathmind`，将确认可读的备份复制到 `data/mathmind.db`，再执行 `sudo systemctl start mathmind`。演练检查示例：`python3 -c "import sqlite3; print(sqlite3.connect('data/backups/备份名.db').execute('select count(*) from users').fetchone())"`。
 
 ## 快速排障
 
