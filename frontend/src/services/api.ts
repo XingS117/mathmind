@@ -96,6 +96,7 @@ export interface ReferralSummary {
 export interface OperationsOverview {
   funnel: Pick<ReferralSummary, "visits" | "registrations" | "first_questions" | "first_tutors">;
   runtime_health: Array<{
+    feature: string;
     engine_kind: string;
     provider: string;
     model_name: string;

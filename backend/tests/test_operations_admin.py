@@ -209,6 +209,7 @@ class OperationsAdminTest(unittest.TestCase):
             db.add_all([link, visit, attribution,
                 RuntimeEvent(id="re_success", feature="question_analysis", engine_kind="text", provider="openai", model_name="gpt-test", outcome="success", duration_ms=40),
                 RuntimeEvent(id="re_failure", feature="question_analysis", engine_kind="text", provider="openai", model_name="gpt-test", outcome="failed", duration_ms=20, error_code="upstream"),
+                RuntimeEvent(id="re_tutor", feature="tutor", engine_kind="text", provider="openai", model_name="gpt-test", outcome="success", duration_ms=10),
             ])
             db.commit()
         finally:
@@ -219,8 +220,11 @@ class OperationsAdminTest(unittest.TestCase):
         payload = response.json()
         self.assertEqual(payload["funnel"], {"visits": 1, "registrations": 1, "first_questions": 1, "first_tutors": 0})
         self.assertEqual(payload["runtime_health"], [{
-            "engine_kind": "text", "provider": "openai", "model_name": "gpt-test",
+            "feature": "question_analysis", "engine_kind": "text", "provider": "openai", "model_name": "gpt-test",
             "count": 2, "success_rate": 0.5, "avg_duration_ms": 30,
+        }, {
+            "feature": "tutor", "engine_kind": "text", "provider": "openai", "model_name": "gpt-test",
+            "count": 1, "success_rate": 1, "avg_duration_ms": 10,
         }])
         self.assertNotIn(self.user_id, str(payload))
         self.assertNotIn(self.user_username, str(payload))

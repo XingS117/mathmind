@@ -18,19 +18,28 @@ export default function SharePage() {
   const share = async () => {
     if (!summary) return;
     const text = `${PROMOTION_PREFIX}${summary.share_url}`;
+    const copyPromotion = async () => {
+      if (!navigator.clipboard) {
+        setNotice(`请手动复制：${text}`);
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(text);
+        setNotice("推广文案已复制，可粘贴发送给好友或朋友圈");
+      } catch {
+        setNotice(`复制失败，请手动复制：${text}`);
+      }
+    };
     try {
       if (navigator.share) {
         await navigator.share({ title: "数智学堂", text, url: summary.share_url });
         setNotice("已打开分享面板");
-      } else if (navigator.clipboard) {
-        await navigator.clipboard.writeText(text);
-        setNotice("推广文案已复制，可粘贴发送给好友或朋友圈");
       } else {
-        setNotice(text);
+        await copyPromotion();
       }
     } catch (e: unknown) {
       if (e instanceof DOMException && e.name === "AbortError") return;
-      setNotice("暂时无法调用分享功能，请复制下方文案");
+      await copyPromotion();
     }
   };
 

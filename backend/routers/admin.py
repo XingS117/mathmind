@@ -177,6 +177,7 @@ def operations_overview(request: Request, db: DBSession = Depends(get_db)):
     }
     rows = (
         db.query(
+            RuntimeEvent.feature,
             RuntimeEvent.engine_kind,
             RuntimeEvent.provider,
             RuntimeEvent.model_name,
@@ -184,11 +185,12 @@ def operations_overview(request: Request, db: DBSession = Depends(get_db)):
             func.sum(case((RuntimeEvent.outcome == "success", 1), else_=0)).label("success_count"),
             func.avg(RuntimeEvent.duration_ms).label("avg_duration_ms"),
         )
-        .group_by(RuntimeEvent.engine_kind, RuntimeEvent.provider, RuntimeEvent.model_name)
-        .order_by(RuntimeEvent.engine_kind, RuntimeEvent.provider, RuntimeEvent.model_name)
+        .group_by(RuntimeEvent.feature, RuntimeEvent.engine_kind, RuntimeEvent.provider, RuntimeEvent.model_name)
+        .order_by(RuntimeEvent.feature, RuntimeEvent.engine_kind, RuntimeEvent.provider, RuntimeEvent.model_name)
         .all()
     )
     return {"funnel": funnel, "runtime_health": [{
+        "feature": row.feature,
         "engine_kind": row.engine_kind,
         "provider": row.provider,
         "model_name": row.model_name,
