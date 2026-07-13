@@ -1,4 +1,5 @@
 import json, logging
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session as DBSession
 from sqlalchemy import func
@@ -6,6 +7,7 @@ from backend.database import get_db
 from backend.models.question import Question
 from backend.models.session import Session
 from backend.models.mastery import Mastery
+from backend.models.review import ReviewSchedule
 from backend.schemas.api_schemas import DashboardData
 from backend.services.auth_service import get_user_id
 from backend.services.knowmap_service import get_node
@@ -99,12 +101,30 @@ def dashboard(request: Request, db: DBSession = Depends(get_db)):
             for kp in (kps or [])[:2]:
                 node_counts[kp] = node_counts.get(kp, 0) + 1
     top_studied = sorted(node_counts.items(), key=lambda x: -x[1])[:6]
+    now = datetime.utcnow()
+    due_reviews = db.query(ReviewSchedule).filter(
+        ReviewSchedule.user_id == uid,
+        ReviewSchedule.completed == False,
+        ReviewSchedule.scheduled_date <= now,
+    ).order_by(ReviewSchedule.scheduled_date).limit(3).all()
+    mastery_change = db.query(func.sum(Mastery.score)).filter(
+        Mastery.user_id == uid,
+        Mastery.last_reviewed >= now - timedelta(days=7),
+    ).scalar() or 0
 
     return DashboardData(
         total_questions=q_count, total_sessions=s_count,
         avg_mastery=round(float(avg), 2), weak_points=weak_points,
         recent_sessions=[{"id": s.id, "status": s.status} for s in recent],
-        top_studied=[{"node": k, "count": v} for k, v in top_studied]
+        top_studied=[{"node": k, "count": v} for k, v in top_studied],
+        due_reviews=[{
+            "id": review.id,
+            "question_id": review.question_id,
+            "round": review.review_round,
+            "type": review.review_type,
+            "scheduled_date": str(review.scheduled_date)[:10],
+        } for review in due_reviews],
+        mastery_change=round(float(mastery_change), 2),
     )
 
 @router.get("/learn/progress")

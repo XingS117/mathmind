@@ -74,7 +74,7 @@ git commit -m "feat(学习): 持久化导学与复习掌握度"
 
 **文件：** 修改 `backend/routers/learn.py`、`backend/schemas/api_schemas.py`、`frontend/src/services/api.ts`、`frontend/src/pages/DashboardPage.tsx`、`frontend/src/App.tsx`；测试 `backend/tests/test_dashboard_diagnostics.py`。
 
-- [ ] **步骤 1：编写失败 API 测试**
+- [x] **步骤 1：编写失败 API 测试**
 
 ```python
 def test_dashboard_returns_due_reviews_and_recent_mastery_change(self):
@@ -84,13 +84,13 @@ def test_dashboard_returns_due_reviews_and_recent_mastery_change(self):
     self.assertEqual(payload.mastery_change, 0.3)
 ```
 
-- [ ] **步骤 2：运行测试验证失败**
+- [x] **步骤 2：运行测试验证失败**
 
 运行：`python -m unittest backend.tests.test_dashboard_diagnostics.DashboardLearningLoopTest`
 
 预期：FAIL，`DashboardData` 没有 `due_reviews` 与 `mastery_change`。
 
-- [ ] **步骤 3：实现最少 API 和界面**
+- [x] **步骤 3：实现最少 API 和界面**
 
 `GET /learn/dashboard` 返回最多 3 条到期未完成复习（ID、题目 ID、轮次、类型、日期）和最近 7 天的 `mastery_change`。没有任务时返回空数组和 0。前端定义：
 
@@ -101,7 +101,7 @@ export const completeReview = (id: string) => apiJsonOrThrow<{ status: string }>
 
 `DashboardPage` 在顶部展示“今日复习”卡片：每条任务可“开始复习”并通过现有 `onSelectQuestion(question_id)` 进入导学；显示“本周掌握度变化”。完成复习操作后刷新 dashboard 和 history。无任务时显示“今日没有待复习，去入库一道题”。不可添加强制分享、排行榜或营销内容。
 
-- [ ] **步骤 4：运行前后端验证和浏览器验收**
+- [x] **步骤 4：运行前后端验证和浏览器验收**
 
 ```powershell
 python -m unittest backend.tests.test_dashboard_diagnostics backend.tests.test_mastery_persistence
@@ -111,7 +111,7 @@ cd frontend; npx tsc --noEmit; npm run build; node --test src/components/knowmap
 
 预期：全部退出码 0。浏览器验收：桌面与 390px 下首页出现今日复习/空态；点击任务进入对应题目；完成后任务消失、掌握变化更新；控制台无错误。
 
-- [ ] **步骤 5：提交**
+- [x] **步骤 5：提交**
 
 ```bash
 git add backend/routers/learn.py backend/schemas/api_schemas.py backend/tests/test_dashboard_diagnostics.py frontend/src/services/api.ts frontend/src/pages/DashboardPage.tsx frontend/src/App.tsx

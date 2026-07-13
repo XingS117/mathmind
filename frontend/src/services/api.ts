@@ -233,9 +233,20 @@ export async function getActiveSession() {
   return apiJson<any>("/tutor/sessions/active");
 }
 
+export type DueReview = {
+  id: string;
+  question_id: string;
+  round: number;
+  type: string;
+  scheduled_date: string;
+};
+
 export async function getDashboard() {
   return apiJson<any>("/learn/dashboard");
 }
+
+export const completeReview = (id: string) =>
+  apiJsonOrThrow<{ status: string }>(`/learn/reviews/${id}/complete`, { method: "POST" });
 
 export async function getHistory() {
   return apiJson<any>("/learn/history");

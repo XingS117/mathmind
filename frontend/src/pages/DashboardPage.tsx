@@ -1,5 +1,5 @@
-﻿import { useState, useEffect } from "react";
-import { getDashboard, getHistory } from "../services/api";
+﻿import { useState, useEffect, useCallback } from "react";
+import { completeReview, DueReview, getDashboard, getHistory } from "../services/api";
 
 type Page = "dashboard" | "upload" | "knowmap" | "tutor";
 
@@ -19,11 +19,25 @@ export default function DashboardPage({ onSelectQuestion, onNavigate, onSelectWe
   const [history, setHistory] = useState<any[]>([]);
   const [showWeak, setShowWeak] = useState(false);
   const [showDist, setShowDist] = useState(false);
+  const [completingReviewId, setCompletingReviewId] = useState<string | null>(null);
 
-  useEffect(() => {
+  const refreshDashboard = useCallback(() => {
     getDashboard().then(setData).catch(() => {});
     getHistory().then((d) => setHistory(d.sessions || [])).catch(() => {});
   }, []);
+
+  useEffect(() => { refreshDashboard(); }, [refreshDashboard]);
+
+  const handleCompleteReview = async (review: DueReview) => {
+    if (!window.confirm("确认已完成这次复习？")) return;
+    setCompletingReviewId(review.id);
+    try {
+      await completeReview(review.id);
+      refreshDashboard();
+    } finally {
+      setCompletingReviewId(null);
+    }
+  };
 
   const stats = [
     { label: "已入库题目", value: data?.total_questions || 0, color: "var(--brand)", hint: "查看分布", onClick: () => onNavigate("knowmap") },
@@ -36,6 +50,42 @@ export default function DashboardPage({ onSelectQuestion, onNavigate, onSelectWe
 
   return (
     <div>
+      <div style={{ marginBottom: 16, padding: 16, background: "var(--card)", borderRadius: "var(--radius)", border: "1px solid var(--border)", boxShadow: "var(--shadow)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, marginBottom: 10 }}>
+          <h2 style={{ margin: 0, fontSize: 16, color: "var(--text)" }}>今日复习</h2>
+          <span style={{ fontSize: 12, color: "var(--success)", fontWeight: 600 }}>本周掌握度变化 +{Math.round((data?.mastery_change || 0) * 100)}%</span>
+        </div>
+        {data?.due_reviews?.length > 0 ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {data.due_reviews.map((review: DueReview) => (
+              <div key={review.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "10px 12px", background: "var(--bg)", borderRadius: "var(--radius-sm)" }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>第 {review.round} 轮复习</div>
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 3 }}>{review.type} · {review.scheduled_date}</div>
+                </div>
+                <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                  <button type="button" onClick={() => onSelectQuestion(review.question_id)}
+                    style={{ padding: "5px 9px", border: "none", borderRadius: "var(--radius-sm)", background: "var(--brand)", color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+                    开始复习
+                  </button>
+                  <button type="button" onClick={() => handleCompleteReview(review)} disabled={completingReviewId === review.id}
+                    style={{ padding: "5px 9px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", background: "var(--card)", color: "var(--text-secondary)", cursor: completingReviewId === review.id ? "wait" : "pointer", fontSize: 12 }}>
+                    {completingReviewId === review.id ? "提交中" : "完成复习"}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, fontSize: 13, color: "var(--text-muted)" }}>
+            <span>今日没有待复习，去入库一道题</span>
+            <button type="button" onClick={() => onNavigate("upload")}
+              style={{ padding: "5px 9px", border: "1px solid var(--brand)", borderRadius: "var(--radius-sm)", background: "var(--card)", color: "var(--brand)", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+              去入库
+            </button>
+          </div>
+        )}
+      </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 16 }}>
         {stats.map((s, i) => (
           <div key={i} onClick={s.onClick}

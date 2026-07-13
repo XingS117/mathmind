@@ -65,3 +65,5 @@ class DashboardData(BaseModel):
     recent_sessions: list = []
     active_session: Optional[TutorSessionResponse] = None
     top_studied: list[NodeCount] = []
+    due_reviews: list[dict] = []
+    mastery_change: float = 0.0
