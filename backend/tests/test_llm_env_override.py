@@ -6,10 +6,19 @@ import os
 import unittest
 from unittest import mock
 
-from backend.routers.upload import _get_llm_config
+from backend.routers.upload import _get_llm_config, _has_user_model_config
 
 
 class LlmEnvOverrideTest(unittest.TestCase):
+    def test_platform_env_model_allows_new_student_without_personal_config(self):
+        """A production-wide model key must be usable by newly registered students."""
+        with mock.patch.dict(
+            os.environ,
+            {"MATHMIND_LLM_API_KEY": "sk-platform"},
+            clear=False,
+        ):
+            self.assertTrue(_has_user_model_config("u_new_student"))
+
     def test_env_key_wins_over_db(self):
         with mock.patch.dict(
             os.environ,

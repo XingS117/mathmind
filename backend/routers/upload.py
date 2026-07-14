@@ -219,6 +219,12 @@ def _get_llm_config(uid: str) -> tuple[bool, dict | None]:
 
 
 def _has_user_model_config(uid: str) -> bool:
+    import os as _os
+
+    # A production-wide key is intentionally shared by the service, so a newly
+    # registered student must not be forced to save a duplicate personal key.
+    if _os.getenv("MATHMIND_LLM_API_KEY") or _os.getenv("DEEPSEEK_API_KEY"):
+        return True
     db = SessionLocal()
     try:
         return db.query(UserSettings).filter(UserSettings.user_id == uid).first() is not None
