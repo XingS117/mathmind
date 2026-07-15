@@ -51,7 +51,7 @@ class UsernameAvailabilityRequest(BaseModel):
         return validate_registration_username(value)
 
 @router.get("/auth/username-availability")
-def username_availability(req: UsernameAvailabilityRequest = Depends(), request: Request = None, db: DBSession = Depends(get_db)):
+def username_availability(request: Request, req: UsernameAvailabilityRequest = Depends(), db: DBSession = Depends(get_db)):
     if not rate_limiter.allow(client_ip(request), "username_availability", limit=60):
         raise HTTPException(429, "用户名检查过于频繁，请稍后再试")
     return {"available": db.query(User).filter(User.username == req.username).first() is None}
@@ -114,7 +114,7 @@ export async function checkUsernameAvailability(username: string, signal?: Abort
 }
 ```
 
-在 `LoginPage` 使用 `useEffect`：有效用户名 400ms 后调用检查接口；输入改变和卸载时调用 `AbortController.abort()`；仅将当前请求结果写入状态。用辅助函数计算按钮可用性，显示检查中、可用、已占用和检查失败的明确文案。
+在 `LoginPage` 使用 `useEffect`：有效用户名 400ms 后调用检查接口；输入改变和卸载时调用 `AbortController.abort()`；仅将当前请求结果写入状态。用辅助函数计算按钮可用性，显示检查中、可用、已占用和检查失败的明确文案。显示姓名为空或超过 32 位时立即提示并禁用提交；提交收到“用户名已存在”时，将用户名状态改为 `taken`，让错误定位在用户名字段。
 
 - [ ] **步骤 4：运行前端测试验证通过**
 

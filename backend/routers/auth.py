@@ -84,6 +84,21 @@ def register(req: RegisterRequest, request: Request, db: DBSession = Depends(get
     return {"user": {"id": user.id, "name": user.name, "role": user.role, "school_level": user.school_level}}
 
 
+@router.get("/auth/username-availability")
+def username_availability(
+    request: Request,
+    username: str,
+    db: DBSession = Depends(get_db),
+):
+    try:
+        validate_registration_username(username)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
+    if not rate_limiter.allow(client_ip(request), "username_availability", limit=60):
+        raise HTTPException(429, "用户名检查过于频繁，请稍后再试")
+    return {"available": db.query(User).filter(User.username == username).first() is None}
+
+
 @router.post("/auth/login")
 def login(req: LoginRequest, request: Request, db: DBSession = Depends(get_db)):
     user = db.query(User).filter(User.username == req.username).first()
