@@ -159,11 +159,13 @@ npm run build
 
 预期：后端、前端、类型检查和生产构建全部通过。
 
-- [ ] **步骤 4：部署并验收正式站**
+- [x] **步骤 4：部署并验收正式站**
 
 打包当前 `HEAD` 与 `frontend/dist`，上传到 `/data/mathmind/deploy.tar.gz`，使用 `sudo tar -xzf ... --no-same-owner --no-same-permissions` 解压并重启 `mathmind`。验证：本机与公网 OCR 健康接口均为 ready；`GET /api/v1/auth/username-availability?username=<随机有效名>` 返回 `available`；浏览器中已占用用户名提示明确且新用户名可成功注册。
 
-- [ ] **步骤 5：提交运维说明与验收记录**
+已验证：生产服务为 `active`，本机与公网 OCR 均为 `ready`，公网有效用户名检查返回 `{"available": true}`，中文用户名返回 422 和格式文案。浏览器中格式错误即时禁用，`xingruize123` 显示“用户名可用”，7 位密码禁用、8 位密码启用；未提交表单，因此未创建验收账户。
+
+- [x] **步骤 5：提交运维说明与验收记录**
 
 ```powershell
 git add docs/DEPLOYMENT-live.md docs/superpowers/plans/2026-07-15-registration-availability.md
