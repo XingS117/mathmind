@@ -140,11 +140,11 @@ git commit -m "feat(注册): 即时提示用户名可用性"
 
 预期：服务为 `active`，服务运行用户可创建 SQLite journal 文件。
 
-- [ ] **步骤 2：写入部署权限防回归说明**
+- [x] **步骤 2：写入部署权限防回归说明**
 
 在 `DEPLOYMENT-live.md` 更新解压命令，明确解压后执行 `sudo chown -R ubuntu:ubuntu /data/mathmind/app/data`，并说明不要用 root 创建持久 SQLite 目录。
 
-- [ ] **步骤 3：运行完整自动化回归**
+- [x] **步骤 3：运行完整自动化回归**
 
 运行：
 

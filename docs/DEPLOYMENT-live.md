@@ -110,9 +110,15 @@ scp -i C:\Users\shuwe\.ssh\mathmind_tencent.pem _temp\deploy-full.tar.gz ubuntu@
 
 ```bash
 cd /data/mathmind
-tar -xzf deploy.tar.gz -C app
+sudo tar -xzf deploy.tar.gz -C app --no-same-owner --no-same-permissions
+# SQLite 除了数据库文件外，还要在 data/ 创建 journal/WAL 文件；必须归服务用户所有。
+sudo chown -R ubuntu:ubuntu /data/mathmind/app/data
+sudo chmod 750 /data/mathmind/app/data
+sudo chmod 640 /data/mathmind/app/data/mathmind.db
 sudo systemctl restart mathmind
 ```
+
+不要用 root 在 `data/` 中创建持久文件后直接上线；若目录属主变为 root，服务虽能启动，但注册、登录记录、错题保存等所有写入都会失败并报“readonly database”。
 
 如 `requirements.txt` 有变动：`/data/mathmind/app/.venv/bin/pip install -r /data/mathmind/app/requirements.txt`。
 
