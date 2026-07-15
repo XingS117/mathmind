@@ -79,7 +79,7 @@ class DatabaseMigrationTest(unittest.TestCase):
 
 
 class PublicAuthFlowTest(unittest.TestCase):
-    marker = "auth-test-"
+    marker = "authtest"
 
     def setUp(self):
         self.real_db_hash = self._file_hash(database.DB_PATH)
@@ -145,6 +145,16 @@ class PublicAuthFlowTest(unittest.TestCase):
     def test_duplicate_username_returns_conflict(self):
         self.assertEqual(self.register().status_code, 201)
         self.assertEqual(self.register().status_code, 409)
+
+    def test_registration_rejects_non_alphanumeric_usernames_with_explicit_message(self):
+        for username in ("中文用户", "user_name", "user-name", "ab", "a" * 33):
+            response = self.register(username=username)
+            self.assertEqual(response.status_code, 422)
+            self.assertTrue(response.json()["detail"][0]["msg"].endswith("用户名仅支持 3–32 位英文字母或数字"))
+
+    def test_registration_accepts_alphanumeric_username_boundaries(self):
+        self.assertEqual(self.register(username="abc").status_code, 201)
+        self.assertEqual(self.register(username="a" * 32).status_code, 201)
 
     def test_unknown_username_and_wrong_password_have_same_message(self):
         self.assertEqual(self.register().status_code, 201)
