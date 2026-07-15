@@ -1,5 +1,7 @@
 ﻿import { useState, useEffect } from "react";
 
+import { isPasswordLengthValid, PASSWORD_LENGTH_MESSAGE } from "../utils/passwordPolicy";
+
 const BASE = "/api/v1";
 function authHeaders(): Record<string, string> {
   const t = localStorage.getItem("token");
@@ -90,8 +92,9 @@ function ModelConfig() {
         </div>
       )}
       <div>
-        <label style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 4, display: "block" }}>API Key</label>
+        <label style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 4, display: "block" }}>API Key（留空则保留已保存的密钥）</label>
         <input type="password" value={config.api_key} onChange={e => setConfig({ ...config, api_key: e.target.value })}
+          placeholder={config.api_key_configured ? "已配置，留空不修改" : "请输入 API Key"}
           disabled={config.model_provider === "mock"}
           style={{ width: "100%", padding: "9px 12px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", fontSize: 13, background: "var(--card)", color: "var(--text)" }} />
       </div>
@@ -121,7 +124,7 @@ function ModelConfig() {
   );
 }
 
-function ChangePassword() {
+export function ChangePassword() {
   const [oldPwd, setOldPwd] = useState("");
   const [newPwd, setNewPwd] = useState("");
   const [confirmPwd, setConfirmPwd] = useState("");
@@ -129,7 +132,7 @@ function ChangePassword() {
   const [loading, setLoading] = useState(false);
 
   const submit = async () => {
-    if (newPwd.length < 6) { setMsg({ status: "error", text: "新密码至少6位" }); return; }
+    if (!isPasswordLengthValid(newPwd)) { setMsg({ status: "error", text: PASSWORD_LENGTH_MESSAGE }); return; }
     if (newPwd !== confirmPwd) { setMsg({ status: "error", text: "两次密码不一致" }); return; }
     setLoading(true); setMsg(null);
     try {
@@ -151,7 +154,7 @@ function ChangePassword() {
     <div style={{ maxWidth: 400, display: "flex", flexDirection: "column", gap: 12 }}>
       <input type="password" placeholder="旧密码" value={oldPwd} onChange={e => setOldPwd(e.target.value)}
         style={{ padding: "9px 12px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", fontSize: 13 }} />
-      <input type="password" placeholder="新密码（至少6位）" value={newPwd} onChange={e => setNewPwd(e.target.value)}
+      <input type="password" placeholder="新密码（8–128 位）" value={newPwd} onChange={e => setNewPwd(e.target.value)}
         style={{ padding: "9px 12px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", fontSize: 13 }} />
       <input type="password" placeholder="确认新密码" value={confirmPwd} onChange={e => setConfirmPwd(e.target.value)}
         style={{ padding: "9px 12px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", fontSize: 13 }} />
@@ -183,7 +186,7 @@ function UserManagement() {
 
   const createUser = async () => {
     if (form.username.length < 2) { setMsg({ status: "error", text: "用户名至少2位" }); return; }
-    if (form.password.length < 6) { setMsg({ status: "error", text: "密码至少6位" }); return; }
+    if (!isPasswordLengthValid(form.password)) { setMsg({ status: "error", text: PASSWORD_LENGTH_MESSAGE }); return; }
     try {
       const r = await fetch(BASE + "/admin/users", {
         method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() },
@@ -216,7 +219,7 @@ function UserManagement() {
             style={{ padding: "8px 12px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", fontSize: 12 }} />
           <input placeholder="姓名" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
             style={{ padding: "8px 12px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", fontSize: 12 }} />
-          <input type="password" placeholder="初始密码" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })}
+          <input type="password" placeholder="初始密码（8–128 位）" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })}
             style={{ padding: "8px 12px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", fontSize: 12 }} />
           <select value={form.school_level} onChange={e => setForm({ ...form, school_level: e.target.value })}
             style={{ padding: "8px 12px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", fontSize: 12, background: "var(--card)" }}>

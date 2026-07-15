@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { analyzeQuestion, confirmQuestion, getKnowMapTree, type AnalysisResult } from "../services/api";
-import { filterKnowMapNodes, formatNodePath } from "./knowmapPicker.js";
+import { analyzeQuestion, confirmQuestion, getKnowMapTree, getOcrHealth, type AnalysisResult } from "../services/api";
+import { browseChildren, browseTopLevelBooks, filterKnowMapNodes, formatNodePath } from "./knowmapPicker.js";
 
 interface Props {
   grade?: string;
@@ -31,10 +31,14 @@ export default function ImageUpload({ grade = "高中", onConfirm }: Props) {
   const [previews, setPreviews] = useState<string[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [elapsed, setElapsed] = useState(0); // seconds
+  const [ocrHealth, setOcrHealth] = useState<string>("");
+  const abortRef = useRef<AbortController | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [result, setResult] = useState<ReviewDraft | null>(null);
   const [knowmapNodes, setKnowmapNodes] = useState<KnowMapNode[]>([]);
   const [nodeQuery, setNodeQuery] = useState("");
+  const [browseParentId, setBrowseParentId] = useState<string | null>(null);
 
   useEffect(() => {
     getKnowMapTree(grade).then(d => {
@@ -50,6 +54,22 @@ export default function ImageUpload({ grade = "高中", onConfirm }: Props) {
     const ids = new Set(result?.knowmap_nodes || []);
     return knowmapNodes.filter(n => ids.has(n.id));
   }, [knowmapNodes, result?.knowmap_nodes]);
+
+  const suggestedNodes = useMemo(() => {
+    const suggested = result?.suggested_nodes || [];
+    if (suggested.length === 0) return [];
+    const bySet = new Set(result?.knowmap_nodes || []);
+    const byId = new Map(knowmapNodes.map(n => [n.id, n] as const));
+    return suggested
+      .map(id => byId.get(id))
+      .filter((n): n is KnowMapNode => !!n && !bySet.has(n.id));
+  }, [result?.suggested_nodes, result?.knowmap_nodes, knowmapNodes]);
+
+  const addAllSuggested = () => {
+    if (!result || suggestedNodes.length === 0) return;
+    const merged = Array.from(new Set([...(result.knowmap_nodes || []), ...suggestedNodes.map(n => n.id)]));
+    updateResult({ knowmap_nodes: merged });
+  };
 
   const updateResult = (patch: Partial<ReviewDraft>) => {
     setResult(prev => prev ? { ...prev, ...patch } : prev);
@@ -75,21 +95,58 @@ export default function ImageUpload({ grade = "高中", onConfirm }: Props) {
   const analyze = async () => {
     if (files.length === 0) return;
     setAnalyzing(true);
+    setElapsed(0);
+    setOcrHealth("");
     setResult(null);
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+    // 硬上限 6 分钟 (单张 60-90s * 最多 4 张 + LLM)
+    const hardTimeout = window.setTimeout(() => controller.abort(), 360_000);
+    const tick = window.setInterval(() => setElapsed(s => s + 1), 1000);
+    const healthPoll = window.setInterval(() => {
+      getOcrHealth().then(h => setOcrHealth(h.status)).catch(() => {});
+    }, 5000);
+
     try {
-      const d = await analyzeQuestion(files);
+      const d = await analyzeQuestion(files, controller.signal);
+      // AI 建议的图谱节点默认全部勾选 (P1-UX-KP-01):
+      // 大部分情况下 matcher 命中即正确, 让用户看到"已选"更快;
+      // 若不满意可以点标签上的 × 撤销.
+      const auto = Array.isArray(d.suggested_nodes) ? d.suggested_nodes.slice(0, 3) : [];
       setResult({
         ...d,
         key_insight: d.key_insight || "",
         final_answer: "",
         solution_text: "",
-        knowmap_nodes: [],
+        knowmap_nodes: auto,
       });
-    } catch {
-      setResult({ success: false, error: "网络错误", suggestion: "请检查网络连接后重试" });
+    } catch (err: unknown) {
+      const aborted = err instanceof DOMException && err.name === "AbortError";
+      setResult({
+        success: false,
+        error: aborted ? "识别超时(超过 6 分钟)" : "网络错误",
+        suggestion: aborted
+          ? "OCR 未能在预期时间内完成,请减少图片数量后重试,或先手动录入题干"
+          : "请检查后端是否运行 (http://127.0.0.1:8000),或改为手动录入",
+      });
     } finally {
+      window.clearTimeout(hardTimeout);
+      window.clearInterval(tick);
+      window.clearInterval(healthPoll);
+      abortRef.current = null;
       setAnalyzing(false);
     }
+  };
+
+  const cancelAnalyze = () => {
+    abortRef.current?.abort();
+  };
+
+  const formatElapsed = (sec: number) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
   const confirm = async () => {
@@ -127,6 +184,7 @@ export default function ImageUpload({ grade = "高中", onConfirm }: Props) {
     if (current.includes(selectedNodeId)) return;
     updateResult({ knowmap_nodes: [...current, selectedNodeId] });
     setNodeQuery("");
+    setBrowseParentId(null);
   };
   const removeNode = (id: string) => {
     if (!result) return;
@@ -175,11 +233,35 @@ export default function ImageUpload({ grade = "高中", onConfirm }: Props) {
         </button>
       )}
 
-      {analyzing && (
-        <div style={{ marginTop: 12, textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
-          正在识别并分析题目...
-        </div>
-      )}
+      {analyzing && (() => {
+        const perImage = 75; // seconds per image (empirically 60-90s)
+        const budget = files.length * perImage + 10;
+        const pct = Math.min(99, Math.floor((elapsed / budget) * 100));
+        const remain = Math.max(0, budget - elapsed);
+        const ocrLabel =
+          ocrHealth === "ready" ? "OCR 就绪"
+          : ocrHealth === "initializing" ? "OCR 正在启动"
+          : ocrHealth === "failed" ? "OCR 启动失败,将走 Mock"
+          : "OCR 状态检测中";
+        return (
+          <div style={{ marginTop: 12, padding: 14, border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", background: "var(--card)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 8, color: "var(--text)" }}>
+              <span>正在识别 {files.length} 张图片...</span>
+              <span style={{ fontVariantNumeric: "tabular-nums" }}>{formatElapsed(elapsed)} / 约 {formatElapsed(budget)}</span>
+            </div>
+            <div style={{ height: 6, borderRadius: 3, background: "var(--border)", overflow: "hidden", marginBottom: 8 }}>
+              <div style={{ width: `${pct}%`, height: "100%", background: "var(--brand)", transition: "width 0.6s linear" }} />
+            </div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
+              {ocrLabel} · 预计还需 {formatElapsed(remain)} · 请勿关闭页面
+            </div>
+            <button type="button" onClick={cancelAnalyze}
+              style={{ fontSize: 12, padding: "6px 12px", background: "transparent", color: "var(--text-muted)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", cursor: "pointer" }}>
+              取消识别
+            </button>
+          </div>
+        );
+      })()}
 
       {result && !analyzing && (
         <div style={{ marginTop: 12, padding: 16, borderRadius: "var(--radius)", border: "1px solid var(--border)", background: "var(--card)" }}>
@@ -234,6 +316,31 @@ export default function ImageUpload({ grade = "高中", onConfirm }: Props) {
 
               <label style={{ ...labelStyle, marginTop: 10 }}>图谱节点</label>
               <div>
+                {suggestedNodes.length > 0 && (
+                  <div style={{ marginBottom: 10, padding: 10, border: "1px solid rgba(30,64,175,0.15)", background: "var(--brand-bg)", borderRadius: "var(--radius-sm)" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--brand)" }}>
+                        💡 还没被采用的建议 ({suggestedNodes.length})
+                      </span>
+                      <button type="button" onClick={addAllSuggested}
+                        style={{ fontSize: 11, padding: "4px 10px", border: "1px solid var(--brand)", background: "var(--brand)", color: "#fff", borderRadius: 999, cursor: "pointer", fontWeight: 500 }}>
+                        追加全部
+                      </button>
+                    </div>
+                    <div style={{ display: "grid", gap: 4 }}>
+                      {suggestedNodes.map(n => (
+                        <button key={n.id} type="button" onClick={() => addNode(n.id)}
+                          style={{ display: "flex", justifyContent: "space-between", gap: 8, width: "100%", textAlign: "left", padding: "6px 10px", border: "1px solid rgba(30,64,175,0.2)", borderRadius: "var(--radius-sm)", background: "var(--card)", color: "var(--text)", cursor: "pointer", fontSize: 12, lineHeight: 1.4 }}>
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{formatNodePath(n, knowmapNodes)}</span>
+                          <span style={{ color: "var(--brand)", fontWeight: 700, flexShrink: 0 }}>+ 添加</span>
+                        </button>
+                      ))}
+                    </div>
+                    <p style={{ fontSize: 10, color: "var(--text-muted)", margin: "6px 0 0" }}>
+                      默认已按 AI 匹配自动关联，可点击下方"×"撤销；未采用的候选如需追加，点即可添加。
+                    </p>
+                  </div>
+                )}
                 <input value={nodeQuery} onChange={e => setNodeQuery(e.target.value)}
                   placeholder="搜索章节、知识点或节点 ID"
                   aria-label="搜索图谱节点"
@@ -247,20 +354,62 @@ export default function ImageUpload({ grade = "高中", onConfirm }: Props) {
                     </button>
                   ))}
                   {nodeMatches.length === 0 && (
-                    <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>没有匹配的图谱节点</p>
+                    <div style={{ display: "grid", gap: 6 }}>
+                      <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 4px" }}>
+                        {nodeQuery.trim() ? `未匹配到"${nodeQuery.trim()}"，按教材浏览：` : "按教材浏览："}
+                      </p>
+                      {browseParentId && (
+                        <button type="button" onClick={() => {
+                          const current = knowmapNodes.find(n => n.id === browseParentId);
+                          setBrowseParentId(current?.parent_id ?? null);
+                        }} style={{ fontSize: 12, textAlign: "left", padding: "6px 10px", border: "1px dashed var(--border)", borderRadius: "var(--radius-sm)", background: "transparent", color: "var(--text-muted)", cursor: "pointer" }}>
+                          ← 返回上一级
+                        </button>
+                      )}
+                      {(browseParentId
+                        ? browseChildren(knowmapNodes, browseParentId, result?.knowmap_nodes || [])
+                        : browseTopLevelBooks(knowmapNodes, result?.knowmap_nodes || [])
+                      ).map(n => {
+                        const hasChildren = knowmapNodes.some(c => c.parent_id === n.id);
+                        return (
+                          <div key={n.id} style={{ display: "flex", gap: 6 }}>
+                            <button type="button" onClick={() => addNode(n.id)}
+                              style={{ flex: 1, textAlign: "left", padding: "8px 10px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", background: "var(--card)", color: "var(--text)", cursor: "pointer", fontSize: 12, lineHeight: 1.4 }}>
+                              <span style={{ color: "var(--brand)", fontWeight: 600, marginRight: 6 }}>选此</span>
+                              {n.name}
+                            </button>
+                            {hasChildren && (
+                              <button type="button" onClick={() => setBrowseParentId(n.id)}
+                                style={{ padding: "8px 10px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", background: "transparent", color: "var(--text-muted)", cursor: "pointer", fontSize: 12 }}>
+                                展开 →
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
               </div>
-              {selectedNodes.length > 0 && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-                  {selectedNodes.map(n => (
-                    <button key={n.id} type="button" onClick={() => removeNode(n.id)}
-                      title="点击移除"
-                      style={{ border: "1px solid rgba(30,64,175,0.15)", background: "var(--brand-bg)", color: "var(--brand)", borderRadius: 999, padding: "3px 9px", fontSize: 11, cursor: "pointer" }}>
-                      {n.name} ×
-                    </button>
-                  ))}
+              {selectedNodes.length > 0 ? (
+                <div style={{ marginTop: 8 }}>
+                  <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "0 0 4px" }}>
+                    已关联 {selectedNodes.length} 个节点(点标签 × 撤销):
+                  </p>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {selectedNodes.map(n => (
+                      <button key={n.id} type="button" onClick={() => removeNode(n.id)}
+                        title="点击移除"
+                        style={{ border: "1px solid rgba(30,64,175,0.15)", background: "var(--brand-bg)", color: "var(--brand)", borderRadius: 999, padding: "3px 9px", fontSize: 11, cursor: "pointer" }}>
+                        {n.name} ×
+                      </button>
+                    ))}
+                  </div>
                 </div>
+              ) : (
+                <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "8px 0 0" }}>
+                  尚未关联图谱节点。可在上方"还没被采用的建议"里追加,或用下方搜索/教材浏览手动挑选。
+                </p>
               )}
 
               <label style={{ ...labelStyle, marginTop: 10 }}>题眼 / 解题突破口</label>

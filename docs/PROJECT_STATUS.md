@@ -1,14 +1,18 @@
 # 数智学堂项目进度与接续记录
 
-> 快照日期：2026-06-28
+> 快照日期：2026-07-11（Public Beta · 面向真实用户可用）
+> Git HEAD：`44d369a`（分支 `feat/real-question-baseline`）
 > 对应方案：v1.1
-> 当前状态：真实复杂题验收开发已暂停，保留隔离工作树
+> 当前状态：**已进入公开测试期 https://mathmind.xingshuwen.com/**；demo 数据已清空，第一位真实用户可从零建库；高中图谱已切人教 B 版；知识点自动挂节点；7 家模型清单已按官网更新
+> 阶段归档：[`MILESTONE_2026-07-11_public-beta.md`](MILESTONE_2026-07-11_public-beta.md)
 > 用途：供后续 Session、Agent 或开发者快速恢复上下文
 
 ## 1. 权威文档
 
 - 产品定位、范围和阶段方案：[`../SPEC.md`](../SPEC.md)
 - 当前进度、验证结果和恢复入口：本文档
+- Agent 接续入口和当前执行门禁：[`AGENT_HANDOFF.md`](AGENT_HANDOFF.md)
+- 新 Agent 可复制启动指令：[`AGENT_START_PROMPT.md`](AGENT_START_PROMPT.md)
 - Phase B 历史实现计划：[`superpowers/plans/2026-06-19-phase-b-ingestion-quality.md`](superpowers/plans/2026-06-19-phase-b-ingestion-quality.md)
 - 本地启动和检查命令：[`../README.md`](../README.md)
 
@@ -16,31 +20,54 @@
 
 ## 1.1 当前执行快照
 
-当前正在执行“真实复杂题验收基线”计划：
+2026-07-14 已完成第二期学习闭环任务 1 和任务 2：导学与复习的掌握度写回按会话/复习记录幂等执行，复习完成按当前用户范围查询；每次实际写回的导学或复习增量会新增 `mastery_change_events`，通过条件更新按封顶后的真实分值记录，满分节点不新增事件；首页只累计当前用户近 7 天事件，历史掌握记录无事件则显示 0。首页返回最多 3 条到期复习，首次仪表盘加载失败只显示错误卡与重试，历史加载失败保留仪表盘并提示；仪表盘与历史接口会将 4xx/5xx 作为失败处理，503 会进入错误与重试分支。复习流程展示加载、进入、提交中、成功和失败状态，完成后等待刷新结果。隔离 SQLite 回归测试覆盖节点归一化、重复提交、轮次增量、用户隔离、事件迁移、封顶增量、到期任务与近 7 天变化；后端完整测试 132 项、前端类型检查/构建/Node 测试及 Chrome 桌面和 390px 移动核验均通过。任务 3 尚未开始，等待用户授权。
+
+已完成"真实复杂题验收基线"计划全部任务，且完成 Public Beta 里程碑：
 
 - **工作树：** `D:\Sven\maths\.worktrees\real-question-baseline`
 - **分支：** `feat/real-question-baseline`
-- **当前提交：** `1390a9a`
-- **执行计划：** [`superpowers/plans/2026-06-27-real-question-acceptance-baseline.md`](superpowers/plans/2026-06-27-real-question-acceptance-baseline.md)
-- **运行状态：** 前后端服务均已停止，`5173` 和 `8000` 端口未监听。
-- **本地数据：** 主目录数据库已复制到工作树，副本被 Git 忽略；后续验收不会修改主目录数据库。
+- **Git HEAD：** `44d369a`（后续以 `git rev-parse --short HEAD` 为准）
+- **里程碑演进：** Alpha 5 题基线 → Beta 上线 → **Public Beta（当前）**
+- **本阶段归档：** [`MILESTONE_2026-07-11_public-beta.md`](MILESTONE_2026-07-11_public-beta.md)
+- **验收执行计划：** [`superpowers/plans/2026-06-27-real-question-acceptance-baseline.md`](superpowers/plans/2026-06-27-real-question-acceptance-baseline.md)
+- **本地数据：** 工作树 db 副本被 Git 忽略；`.pre_*.bak` 保留了 B 版切换前的图谱与题库快照
+
+Public Beta 阶段新增沉淀（`647ac0b..44d369a` 9 个提交，核心 4 件事）：
+
+1. 高中图谱切人教 B 版（`d9507df` + `7fe2dab`）
+2. demo 数据清空 + 新用户从零开始（`ddad385`）
+3. 知识点自动挂图谱节点（`1836884`）
+4. 7 家模型清单按官网更新 + MiniMax base_url 修正（`1acd50a` + `44d369a`）
+
+（登录 + 数据隔离、正式部署、Windows 单机方案属 Beta 上线阶段成果，见 `docs/quality/ua-2026-07-09.md` UA-06 与 `docs/DEPLOYMENT-live.md`。）
 
 任务进度：
 
 | 任务 | 状态 | 证据 |
 |------|------|------|
 | 任务 1：固定案例清单 | 已完成并通过审查 | `ccd172f`、`61efeb6`；案例测试 11/11 通过 |
-| 任务 2：统一评分门禁 | 实现和规格审查完成，质量审查未通过 | `1390a9a`；评分测试 6/6、后端完整测试 21/21 通过 |
-| 任务 3 至任务 10 | 未开始 | 不得在任务 2 质量问题解决前继续 |
+| 任务 2：统一评分门禁 | 完成（用户已认可） | 实现基线 `1390a9a`；TDD 修复提交 `e3c7005`；评分测试 16/16；后端完整测试 34/34 通过 |
+| 任务 3：锁定现有上传与确认契约 | 完成（用户已认可） | 契约测试提交 `f1164e0`；契约测试 3/3；后端完整测试 34/34 通过；生产代码零改动 |
+| 任务 4：建立验收报告骨架 | 完成 | 提交 `c90c61e`；`docs/quality/real-question-baseline-2026-06-27.md` 与 `docs/quality/cases/RQ-01..RQ-05.md` 已创建 |
+| 任务 5：执行运行环境预检 | 完成 | 本次提交（见 `git log`）；总览环境表已记录，OCR `ready`；PaddleOCR 3.7 `ocr()` 真实图推理抛 `(Unimplemented) ConvertPirAttribute2RuntimeAttribute`，`/api/v1/questions/analyze` 回退 `source: manual_input`，`confidence=0` |
+| 任务 6：执行 RQ-01 与 RQ-02 | 已完成（初版 + 修复包 A 后重跑） | q_5ff68b31c550 / q_52f4dbf31d39；`solution_confidence=high`；0/5、0/10 全错 → `mastery_update=0.0` |
+| 任务 7：执行 RQ-03 与 RQ-04 | 完成 | q_51717033d542 / q_fde2dcfbaac8；均 90 分，无 P0 |
+| 任务 8：执行 RQ-05 | 完成 | q_67928e673fbe；90 分；LLM 未照搬错标答，final=π-2 |
+| 任务 9：汇总共因 + 首个修复包 | 完成 | 修复包 A 已闭环 15 条 P0/P1；见 `docs/quality/real-question-baseline-2026-06-27.md` |
+| 任务 10：最终验证 + 交接 | 完成（Windows 单机方案）| backend 67 pass / knowmap 11 pass / tsc 0 error / vite build 通过；单端口托管前端已验证；`scripts/build.ps1` + `scripts/serve.ps1` + `docs/DEPLOYMENT.md` |
 
-任务 2 尚需解决：
+任务 2 修复明细：
 
-1. 校验 `issues` 必须是列表，每项必须是字典，`severity` 只能是 `P0`、`P1` 或 `P2`，避免拼写错误绕过 P0 门禁。
-2. 增加合法成功路径测试，证明满足门禁时 `can_progress=True`。
-3. 增加 7 个维度的独立权重测试，锁定 `15 / 15 / 20 / 10 / 20 / 15 / 5`。
-4. 校验 `tutor_completed` 必须是布尔值，并精确断言 `blocking_dimensions` 的排序。
+ 1. 校验 `issues` 必须是列表，每项必须是字典，`severity` 只能是 `P0`、`P1` 或 `P2`，避免拼写错误绕过 P0 门禁。
+ 2. 增加合法成功路径测试，证明满足门禁时 `can_progress=True`。
+ 3. 增加 7 个维度的独立权重测试，锁定 `15 / 15 / 20 / 10 / 20 / 15 / 5`。
+ 4. 校验 `tutor_completed` 必须是布尔值，并精确断言 `blocking_dimensions` 的排序。
 
-恢复开发时，必须先让任务 2 的实现代理按 TDD 修复以上问题，再重新执行规格审查和代码质量审查。质量审查通过后才能开始任务 3。
+修复包 A 已闭环：15 条 P0/P1（OCR-01/02、STARTUP-01、TUTOR-01/02/03、CONTENT-01、UX-BANNER-01、UX-01、UI-01、TUTOR-04、HINT-01、REVIEW-01、DASHBOARD-01、UX-KP-01）在 2026-07-09 修复后重跑的 5 题基线中全部验证关闭。
+
+5 题证据：RQ-01 80/100（`q_5ff68b31c550`）、RQ-02 90/100（`q_52f4dbf31d39`）、RQ-03 90/100（`q_51717033d542`）、RQ-04 90/100（`q_fde2dcfbaac8`）、RQ-05 90/100（`q_67928e673fbe`）；均 `solution_confidence=high`、0 对时 `mastery_update=0.0`。
+
+恢复开发时，先阅读 `docs/quality/real-question-baseline-2026-06-27.md` 的共因排序与 `docs/quality/cases/RQ-01..RQ-05.md` 的证据，再按 `AGENT_HANDOFF.md` 交接段决定下一步。
 
 ## 2. 已确认的产品口径
 
@@ -122,7 +149,7 @@ MVP 主闭环：
 
 ## 6. 已知技术缺口
 
-1. 真实复杂含图题尚未经过端到端验证，这是当前最大的产品风险。
+1. 真实复杂含图题验收：5/5 通过，无 P0 遗留（修复包 A 已闭环）。
 2. 当前答案判断主要依赖关键词规则，尚未实现规则失败后的 LLM 评价。
 3. `mastery_update` 会返回给前端，但尚未可靠写入掌握度记录。
 4. 图谱题目卡片尚未展示最近诊断、推荐原因和明确的“开始复习”入口。

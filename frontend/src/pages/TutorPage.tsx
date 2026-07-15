@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { createTutorSession, sendTutorMessage, type TutorDiagnosticSummary } from "../services/api";
 import DiagramView from "../components/DiagramView";
 
@@ -27,10 +27,24 @@ export default function TutorPage({ questionId, onSelectQuestion }: Props) {
     }
     createTutorSession(questionId).then((d) => {
       setSession(d);
-      setMessages([
+      const msgs: any[] = [
         { role: "system", content: d.question_text, isQuestion: true },
-        { role: "system", content: d.opening },
-      ]);
+      ];
+      if (
+        d.solution_confidence === "low" ||
+        (Array.isArray(d.uncertain_points) && d.uncertain_points.length > 0)
+      ) {
+        const detail = (d.uncertain_points || []).slice(0, 3).join("；");
+        msgs.push({
+          role: "system",
+          type: "warning",
+          content:
+            "⚠️ AI 自检提示：本题的解析置信度较低，请对照原答案核对后再学习。" +
+            (detail ? `\n关注点：${detail}` : ""),
+        });
+      }
+      msgs.push({ role: "system", content: d.opening });
+      setMessages(msgs);
       setStep({ current: 1, total: d.total_steps, hints: d.hints_available });
       setLoading(false);
       setTimeout(scroll, 100);
@@ -159,9 +173,36 @@ export default function TutorPage({ questionId, onSelectQuestion }: Props) {
           </div>
         </div>
       ) : (
-        <div style={{ borderTop: "1px solid var(--border)", padding: 20, textAlign: "center", background: "rgba(16,185,129,0.05)" }}>
-          <p style={{ fontSize: 16, fontWeight: 700, color: "var(--success)", marginBottom: 4 }}>学习完成！</p>
-          <p style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 12 }}>掌握度已更新</p>
+        (() => {
+          const mu = typeof lastReply?.mastery_update === "number" ? lastReply.mastery_update : 0;
+          const done = diagnostic?.completed_steps ?? 0;
+          const total = diagnostic?.total_steps ?? step.total ?? 0;
+          const isMastered = mu >= 0.3 && total > 0 && done === total;
+          const isPartial = !isMastered && mu > 0;
+          const bg = isMastered
+            ? "rgba(16,185,129,0.05)"
+            : isPartial
+              ? "rgba(245,158,11,0.06)"
+              : "rgba(239,68,68,0.05)";
+          const titleColor = isMastered
+            ? "var(--success)"
+            : isPartial
+              ? "#b45309"
+              : "#991b1b";
+          const title = isMastered
+            ? "学习完成！"
+            : isPartial
+              ? "本轮走完，还没完全掌握"
+              : "本轮走完，未掌握";
+          const subtitle = isMastered
+            ? `掌握度 +${mu.toFixed(1)}`
+            : isPartial
+              ? `答对 ${done}/${total} 步，掌握度 +${mu.toFixed(1)}`
+              : `答对 ${done}/${total} 步，先回看讲解再练一次`;
+          return (
+        <div style={{ borderTop: "1px solid var(--border)", padding: 20, textAlign: "center", background: bg }}>
+          <p style={{ fontSize: 16, fontWeight: 700, color: titleColor, marginBottom: 4 }}>{title}</p>
+          <p style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 12 }}>{subtitle}</p>
           {diagnostic && (
             <div style={{ textAlign: "left", background: "var(--card)", border: "1px solid rgba(16,185,129,0.18)", borderRadius: "var(--radius-sm)", padding: 12, marginBottom: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
@@ -184,7 +225,7 @@ export default function TutorPage({ questionId, onSelectQuestion }: Props) {
               </p>
             </div>
           )}
-          {lastReply?.variants?.length > 0 && (
+          {isMastered && lastReply?.variants?.length > 0 && (
             <>
               <p style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 8 }}>试试变式题巩固</p>
               <button onClick={() => onSelectQuestion?.(lastReply.variants[0])}
@@ -194,6 +235,8 @@ export default function TutorPage({ questionId, onSelectQuestion }: Props) {
             </>
           )}
         </div>
+          );
+        })()
       )}
     </div>
   );

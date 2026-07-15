@@ -1,5 +1,8 @@
-﻿import { useState, useEffect } from "react";
-import { getDashboard, getHistory } from "../services/api";
+﻿import { useState, useEffect, useCallback } from "react";
+import { completeReview, DueReview, getDashboard, getHistory } from "../services/api";
+
+import { useRef } from "react";
+import { dashboardViewState } from "./dashboardViewState.js";
 
 type Page = "dashboard" | "upload" | "knowmap" | "tutor";
 
@@ -19,11 +22,70 @@ export default function DashboardPage({ onSelectQuestion, onNavigate, onSelectWe
   const [history, setHistory] = useState<any[]>([]);
   const [showWeak, setShowWeak] = useState(false);
   const [showDist, setShowDist] = useState(false);
+  const [completingReviewId, setCompletingReviewId] = useState<string | null>(null);
+  const [startingReviewId, setStartingReviewId] = useState<string | null>(null);
+  const [reviewError, setReviewError] = useState("");
+  const [reviewSuccess, setReviewSuccess] = useState("");
+  const [dashboardError, setDashboardError] = useState("");
+  const [historyError, setHistoryError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const mounted = useRef(true);
+
+  const refreshDashboard = useCallback(async () => {
+    setLoading(true);
+    setDashboardError("");
+    setHistoryError("");
+    try {
+      const dashboard = await getDashboard();
+      if (!mounted.current) return false;
+      setData(dashboard);
+    } catch {
+      if (mounted.current) {
+        setDashboardError("首页数据加载失败，请稍后刷新重试。");
+        setLoading(false);
+      }
+      return false;
+    }
+    try {
+      const historyData = await getHistory();
+      if (mounted.current) setHistory(historyData.sessions || []);
+    } catch {
+      if (mounted.current) setHistoryError("最近学习记录加载失败，不影响今日复习。");
+    } finally {
+      if (mounted.current) setLoading(false);
+    }
+    return true;
+  }, []);
 
   useEffect(() => {
-    getDashboard().then(setData).catch(() => {});
-    getHistory().then((d) => setHistory(d.sessions || [])).catch(() => {});
-  }, []);
+    mounted.current = true;
+    void refreshDashboard();
+    return () => { mounted.current = false; };
+  }, [refreshDashboard]);
+
+  const handleStartReview = (review: DueReview) => {
+    setStartingReviewId(review.id);
+    setReviewError("");
+    setReviewSuccess("正在进入复习题…");
+    window.setTimeout(() => onSelectQuestion(review.question_id), 0);
+  };
+
+  const handleCompleteReview = async (review: DueReview) => {
+    if (!window.confirm("确认已完成这次复习？")) return;
+    setCompletingReviewId(review.id);
+    setReviewError("");
+    setReviewSuccess("");
+    try {
+      await completeReview(review.id);
+      if (await refreshDashboard()) {
+        setReviewSuccess("复习已完成，掌握度已更新。");
+      }
+    } catch {
+      if (mounted.current) setReviewError("复习提交失败，请稍后重试。");
+    } finally {
+      if (mounted.current) setCompletingReviewId(null);
+    }
+  };
 
   const stats = [
     { label: "已入库题目", value: data?.total_questions || 0, color: "var(--brand)", hint: "查看分布", onClick: () => onNavigate("knowmap") },
@@ -33,9 +95,60 @@ export default function DashboardPage({ onSelectQuestion, onNavigate, onSelectWe
 
   const weakBg = "rgba(239,68,68,0.08)";
   const weakColor = "var(--error)";
+  const viewState = dashboardViewState({ loading, data, dashboardError });
+
+  if (viewState === "initial_error") {
+    return (
+      <div style={{ padding: 20, background: "var(--card)", borderRadius: "var(--radius)", border: "1px solid var(--border)", boxShadow: "var(--shadow)", textAlign: "center" }}>
+        <p role="alert" style={{ margin: "0 0 12px", color: "var(--error)", fontSize: 14 }}>{dashboardError}</p>
+        <button type="button" onClick={() => { void refreshDashboard(); }} style={{ padding: "7px 14px", border: "none", borderRadius: "var(--radius-sm)", background: "var(--brand)", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>重试</button>
+      </div>
+    );
+  }
 
   return (
     <div>
+      <div style={{ marginBottom: 16, padding: 16, background: "var(--card)", borderRadius: "var(--radius)", border: "1px solid var(--border)", boxShadow: "var(--shadow)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, marginBottom: 10 }}>
+          <h2 style={{ margin: 0, fontSize: 16, color: "var(--text)" }}>今日复习</h2>
+          <span style={{ fontSize: 12, color: "var(--success)", fontWeight: 600 }}>本周掌握度变化 +{Math.round((data?.mastery_change || 0) * 100)}%</span>
+        </div>
+        {viewState === "loading" ? (
+          <p role="status" style={{ margin: 0, fontSize: 13, color: "var(--text-muted)" }}>正在加载今日复习…</p>
+        ) : data?.due_reviews?.length > 0 ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {data.due_reviews.map((review: DueReview) => (
+              <div key={review.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "10px 12px", background: "var(--bg)", borderRadius: "var(--radius-sm)" }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>第 {review.round} 轮复习</div>
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 3 }}>{review.type} · {review.scheduled_date}</div>
+                </div>
+                <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                  <button type="button" onClick={() => handleStartReview(review)} disabled={startingReviewId !== null || completingReviewId !== null}
+                    style={{ padding: "5px 9px", border: "none", borderRadius: "var(--radius-sm)", background: "var(--brand)", color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+                    {startingReviewId === review.id ? "进入中" : "开始复习"}
+                  </button>
+                  <button type="button" onClick={() => handleCompleteReview(review)} disabled={completingReviewId !== null || startingReviewId !== null}
+                    style={{ padding: "5px 9px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", background: "var(--card)", color: "var(--text-secondary)", cursor: completingReviewId === review.id ? "wait" : "pointer", fontSize: 12 }}>
+                    {completingReviewId === review.id ? "提交中" : "完成复习"}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, fontSize: 13, color: "var(--text-muted)" }}>
+            <span>今日没有待复习，去入库一道题</span>
+            <button type="button" onClick={() => onNavigate("upload")}
+              style={{ padding: "5px 9px", border: "1px solid var(--brand)", borderRadius: "var(--radius-sm)", background: "var(--card)", color: "var(--brand)", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+              去入库
+            </button>
+          </div>
+        )}
+        {dashboardError && data && <p role="alert" style={{ margin: "10px 0 0", color: "var(--error)", fontSize: 12 }}>{dashboardError}</p>}
+        {reviewError && <p role="alert" style={{ margin: "10px 0 0", color: "var(--error)", fontSize: 12 }}>{reviewError}</p>}
+        {reviewSuccess && <p role="status" style={{ margin: "10px 0 0", color: "var(--success)", fontSize: 12 }}>{reviewSuccess}</p>}
+      </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 16 }}>
         {stats.map((s, i) => (
           <div key={i} onClick={s.onClick}
@@ -113,7 +226,11 @@ export default function DashboardPage({ onSelectQuestion, onNavigate, onSelectWe
         </div>
       )}
 
-      {history.length > 0 ? (
+      {historyError ? (
+        <div style={{ padding: 16, background: "var(--card)", borderRadius: "var(--radius)", border: "1px solid var(--border)", boxShadow: "var(--shadow)", color: "var(--text-muted)", fontSize: 13 }}>
+          {historyError}
+        </div>
+      ) : history.length > 0 ? (
         <div style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: 16 }}>
           <div style={{ background: "var(--card)", borderRadius: "var(--radius)", border: "1px solid var(--border)", padding: 20, boxShadow: "var(--shadow)" }}>
             <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: "var(--text)" }}>最近学习</h3>

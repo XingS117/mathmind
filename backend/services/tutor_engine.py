@@ -46,10 +46,43 @@ def _infer_weak_spots(mistakes: list[str], stuck_steps: list[int], teaching_step
         spots.append("思路启动")
     for step_no in stuck_steps:
         idx = step_no - 1
-        question = teaching_steps[idx].get("guiding_question", "") if idx < len(teaching_steps) else ""
-        if question and question not in spots:
-            spots.append(question)
+        if idx >= len(teaching_steps):
+            continue
+        step = teaching_steps[idx]
+        # Prefer short knowledge-point-like labels; the raw
+        # ``guiding_question`` is a full sentence that the dashboard
+        # cannot map to a knowmap node (P1-DASHBOARD-01).
+        candidate = _stuck_step_label(step, step_no)
+        if candidate and candidate not in spots:
+            spots.append(candidate)
     return spots[:3] or ["本题关键步骤"]
+
+
+_MAX_WEAK_SPOT_CHARS = 18
+
+
+def _stuck_step_label(step: dict, step_no: int) -> str:
+    """Pick a short, node-searchable label for a stuck step.
+
+    Order of preference:
+    1. explicit ``knowledge_point`` on the step, if present;
+    2. the first title-like field (``title``/``topic``);
+    3. the ``guiding_question`` truncated to a searchable snippet;
+    4. a generic fallback keyed by step number.
+    """
+    for key in ("knowledge_point", "topic", "title"):
+        val = str(step.get(key) or "").strip()
+        if val:
+            return val[:_MAX_WEAK_SPOT_CHARS]
+    q = str(step.get("guiding_question") or "").strip()
+    if q:
+        # Cut at first punctuation so the label reads like a phrase,
+        # not a whole prompt sentence.
+        for i, ch in enumerate(q[:_MAX_WEAK_SPOT_CHARS]):
+            if ch in "。？！?!，,；;：:":
+                return q[:i]
+        return q[:_MAX_WEAK_SPOT_CHARS]
+    return f"第{step_no}步关键点"
 
 def _next_action(stuck_steps: list[int], weak_spots: list[str], teaching_steps: list[dict]) -> str:
     if stuck_steps:
@@ -100,7 +133,7 @@ def process_message(
 
     if intent == "hint":
         session.hints_used += 1
-        hint = step_data.get("hint", "再想想？")
+        hint = _short_hint(step_data)
         hints_remaining = max(0, 3 - session.hints_used)
         reply = f"提示：{hint}"
         messages.append({"role": "system", "content": reply})
@@ -161,7 +194,7 @@ def process_message(
     else:
         step_state["attempts"] += 1
         if step_state["attempts"] >= 3:
-            reply = step_data.get("stuck_response", "我们一起来做：") + step_data.get("expected_answer", "")
+            reply = _stuck_reply(step_data)
             return _advance(session, steps, messages, teaching_steps, current + 1, hints_remaining, reply)
         else:
             reply = random.choice(ENCOURAGE_WRONG) + " " + step_data.get("wrong_response", "再想想？")
@@ -182,11 +215,81 @@ def process_message(
             }
 
 def _check_answer(user_answer: str, expected: str) -> bool:
-    """Simple keyword-based answer checking for Mock mode."""
+    """Simple keyword-based answer checking for Mock mode.
+
+    When ``expected`` is empty we deliberately return ``False``: an empty
+    reference answer must not silently mark any student input as correct
+    (P0-TUTOR-01). The 3-attempt stuck flow still hands the step over with
+    the teaching explanation.
+    """
     if not expected:
-        return True
+        return False
     expected_keywords = expected.replace("？", "").replace("?", "").split()
     return any(kw in user_answer for kw in expected_keywords)
+
+_MAX_HINT_CHARS = 40
+
+
+def _short_hint(step_data: dict) -> str:
+    """Return a *short* nudge for the ``hint`` intent (P1-HINT-01).
+
+    Historically ``hint`` returned ``step_data["hint"]`` verbatim, but
+    upload.py fills that field with the full step description (100+
+    Chinese characters) — that is the entire solution, so returning it
+    is textbook leakage.
+
+    We now derive a hint that:
+    - prefers ``guiding_question`` (an open-ended prompt);
+    - falls back to the first sentence of ``hint``/``description`` and
+      never exceeds ``_MAX_HINT_CHARS`` visible characters;
+    - never returns the full expected answer even if the caller stuffed
+      it into ``hint``.
+    """
+    guiding = str(step_data.get("guiding_question") or "").strip()
+    if guiding:
+        return _truncate_hint(guiding)
+    raw = str(step_data.get("hint") or step_data.get("description") or "").strip()
+    if not raw:
+        return "再想想？"
+    expected = str(step_data.get("expected_answer") or "").strip()
+    if expected and expected in raw:
+        # If someone (LLM/prompt bug) put the full answer inside hint,
+        # drop the answer portion so we don't leak it.
+        raw = raw.split(expected, 1)[0].strip() or raw
+    return _truncate_hint(raw)
+
+
+def _truncate_hint(text: str) -> str:
+    text = text.strip()
+    if len(text) <= _MAX_HINT_CHARS:
+        return text
+    # Try to cut at the first sentence boundary within the budget.
+    for i, ch in enumerate(text[:_MAX_HINT_CHARS]):
+        if ch in "。！？!?；;\n":
+            return text[: i + 1]
+    return text[:_MAX_HINT_CHARS].rstrip() + "…"
+
+
+def _stuck_reply(step_data: dict) -> str:
+    """Compose the 3-attempts walk-through reply without duplicating the
+    expected answer (P1-TUTOR-04).
+
+    ``upload.py`` populates ``stuck_response`` with the step ``result``,
+    which is the same string as ``expected_answer``. The old code just
+    concatenated the two, producing outputs like ``AB=10, AE=12AB=10,
+    AE=12``. We now emit a single copy: prefer a non-empty
+    ``stuck_response`` alone, otherwise fall back to a lead-in phrase
+    plus ``expected_answer``.
+    """
+    stuck = str(step_data.get("stuck_response") or "").strip()
+    expected = str(step_data.get("expected_answer") or "").strip()
+    if stuck and expected and stuck != expected and expected not in stuck:
+        return f"{stuck}{expected}"
+    if stuck:
+        return stuck
+    if expected:
+        return f"我们一起来做：{expected}"
+    return "我们一起来做这一步。"
 
 def _advance(session, steps, messages, teaching_steps, next_step, hints_remaining, reply_override=None):
     """Advance to the next step."""
@@ -205,11 +308,38 @@ def _advance(session, steps, messages, teaching_steps, next_step, hints_remainin
     }
 
 def _complete(session, steps, messages, hints_remaining, teaching_steps):
-    """Complete the tutoring session."""
+    """Complete the tutoring session.
+
+    Mastery accounting (P0-TUTOR-03): a session that finished because the
+    student was walked through every step but got nothing right must not
+    report ``mastery_achieved`` nor award the full ``+0.3`` mastery delta.
+    Both are derived from the ratio of correctly answered steps.
+    """
     total = len(teaching_steps)
+    completed = sum(1 for s in steps if s.get("status") == "correct")
+    ratio = (completed / total) if total else 0.0
+
+    if total > 0 and completed == total:
+        mastery_achieved = True
+        mastery_update = 0.3
+        reply = "很好！你已经完成了这道题的学习。需要做一道类似的题巩固一下吗？"
+    elif ratio >= 0.6:
+        mastery_achieved = False
+        mastery_update = 0.1
+        reply = (
+            f"这道题走完了，答对 {completed}/{total} 步，还没完全掌握。"
+            "先回看卡住的步骤，我们下次再练一遍。"
+        )
+    else:
+        mastery_achieved = False
+        mastery_update = 0.0
+        reply = (
+            f"这道题走完了，答对 {completed}/{total} 步。"
+            "先别急着做变式，回到卡住的步骤把讲解看懂再来。"
+        )
+
     session.status = "completed"
-    session.mastery_achieved = True
-    reply = "很好！你已经完成了这道题的学习。需要做一道类似的题巩固一下吗？"
+    session.mastery_achieved = mastery_achieved
     messages.append({"role": "system", "content": reply})
     session.messages_json = json.dumps(messages)
     mistakes = json.loads(session.mistakes_json) if isinstance(session.mistakes_json, str) else (session.mistakes_json or [])
@@ -224,9 +354,9 @@ def _complete(session, steps, messages, hints_remaining, teaching_steps):
         "type": "complete", "reply": reply,
         "step_index": total, "total_steps": total,
         "hints_remaining": hints_remaining,
-        "mastery_update": 0.3,
-        "variant_suggested": "需要生成变式题吗？",
-        "feynman_available": True,
+        "mastery_update": mastery_update,
+        "variant_suggested": "需要生成变式题吗？" if mastery_achieved else None,
+        "feynman_available": mastery_achieved,
         "reviews_scheduled": True,
         "diagnostic_summary": diagnostic
     }

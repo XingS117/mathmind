@@ -11,6 +11,7 @@ class QuestionAnalysisResponse(BaseModel):
     text: str = ""
     question_type: str = "计算题"
     knowledge_points: list[str] = []
+    suggested_nodes: list[str] = []
     difficulty: int = 2
     has_diagram: bool = False
     key_insight: str = ""
@@ -37,6 +38,8 @@ class TutorSessionResponse(BaseModel):
     hints_available: int
     has_diagram: bool = False
     diagram_json: Optional[dict] = None
+    solution_confidence: str = "unknown"
+    uncertain_points: list[str] = []
 
 class TutorMessageRequest(BaseModel):
     session_id: str
@@ -62,3 +65,5 @@ class DashboardData(BaseModel):
     recent_sessions: list = []
     active_session: Optional[TutorSessionResponse] = None
     top_studied: list[NodeCount] = []
+    due_reviews: list[dict] = []
+    mastery_change: float = 0.0

@@ -79,7 +79,7 @@
       "配方法"
     ],
     "knowmap_nodes": [
-      "bx1_c2_s3"
+      "bx1_c2_s2"
     ],
     "final_answer": "顶点坐标为 (2, -1)",
     "has_diagram": false,
@@ -157,7 +157,7 @@
       "通项公式"
     ],
     "knowmap_nodes": [
-      "xb2_c1_s2"
+      "xb3_c5_s2"
     ],
     "final_answer": "a10 = 29",
     "has_diagram": false,
@@ -225,7 +225,7 @@
       "函数极值"
     ],
     "knowmap_nodes": [
-      "xb2_c2_s3"
+      "xb3_c6_s2"
     ],
     "final_answer": "极大值f(0)=2，极小值f(2)=-2",
     "has_diagram": false,
@@ -326,7 +326,7 @@
       "同角关系"
     ],
     "knowmap_nodes": [
-      "bx1_c5_s2"
+      "bx3_c7_s2"
     ],
     "final_answer": "cosα=-4/5，tanα=-3/4",
     "has_diagram": false,
@@ -410,7 +410,7 @@
       "标准方程"
     ],
     "knowmap_nodes": [
-      "xb1_c3_s1"
+      "xb1_c2_s5"
     ],
     "final_answer": "x²/16+y²/7=1",
     "has_diagram": false,
@@ -494,7 +494,7 @@
       "前n项和"
     ],
     "knowmap_nodes": [
-      "xb2_c1_s3"
+      "xb3_c5_s3"
     ],
     "final_answer": "S5=31",
     "has_diagram": false,
@@ -811,7 +811,7 @@
       "异面直线"
     ],
     "knowmap_nodes": [
-      "xb1_c1_s4"
+      "xb1_c1_s2"
     ],
     "final_answer": "cosθ=1/2",
     "has_diagram": false,

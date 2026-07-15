@@ -1,4 +1,29 @@
-import logging, tempfile, os, threading, traceback
+"""PaddleOCR wrapper for MathMind.
+
+Handles PaddleOCR 3.x on Windows where the default OneDNN + PIR executor path
+raises ``ConvertPirAttribute2RuntimeAttribute not support`` on ``.ocr()``.
+
+Strategy:
+1. Initialise PaddleOCR with OneDNN disabled to avoid the incompatible kernel.
+   Fall back to a plain constructor if the flag is rejected by an older build.
+2. Prefer the new ``.predict()`` inference entry point exposed by PaddleOCR 3.x.
+   Only fall back to legacy ``.ocr()`` when ``.predict()`` is unavailable.
+3. Parse both the 3.x dict-shape result (``rec_texts``/``rec_scores``) and the
+   legacy ``[[box, (text, score)], ...]`` shape defensively so an unexpected
+   structure never crashes the request handler.
+"""
+
+import asyncio
+import logging
+import os
+import tempfile
+import threading
+import time
+from typing import Any
+
+from backend.database import SessionLocal
+from backend.services.operations_service import record_runtime_event
+
 logger = logging.getLogger(__name__)
 
 _ocr = None
@@ -7,32 +32,161 @@ _ocr_status = "not_started"
 _ocr_error = ""
 _mock_mode = True
 
+
 def get_status():
     return {"status": _ocr_status, "error": _ocr_error}
 
-def init_ocr_background():
+
+def _try_construct(paddle_ocr_cls, **kwargs):
+    """Try to construct PaddleOCR with the given kwargs, tolerating unknowns."""
+    try:
+        return paddle_ocr_cls(**kwargs), None
+    except TypeError as exc:
+        # Older / newer builds may not accept every kwarg; retry without
+        # unsupported ones one at a time.
+        return None, exc
+    except Exception as exc:  # noqa: BLE001
+        return None, exc
+
+
+def _do_init():
+    """Actually construct PaddleOCR. May take 30-120s on first cold start."""
     global _ocr, _ocr_status, _ocr_error, _mock_mode
     try:
         from paddleocr import PaddleOCR
-        ocr = PaddleOCR(use_textline_orientation=True, lang="ch")
+
+        attempts = [
+            # PaddleOCR 3.x accepts ``enable_mkldnn=False`` to disable OneDNN.
+            {"use_textline_orientation": True, "lang": "ch", "enable_mkldnn": False},
+            # Some 3.x releases only expose ``use_mkldnn``.
+            {"use_textline_orientation": True, "lang": "ch", "use_mkldnn": False},
+            # Last resort: default construction (may hit the PIR bug on inference).
+            {"use_textline_orientation": True, "lang": "ch"},
+        ]
+
+        ocr = None
+        last_exc = None
+        for kwargs in attempts:
+            candidate, exc = _try_construct(PaddleOCR, **kwargs)
+            if candidate is not None:
+                ocr = candidate
+                logger.info(f"PaddleOCR initialized with {kwargs}")
+                break
+            last_exc = exc
+            logger.warning(f"PaddleOCR init attempt failed for {kwargs}: {exc}")
+
+        if ocr is None:
+            raise last_exc if last_exc else RuntimeError("PaddleOCR init failed")
+
         _ocr = ocr
         _mock_mode = False
         _ocr_status = "ready"
-        logger.info("PaddleOCR initialized")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         _ocr = None
         _mock_mode = True
-        _ocr_status = "ready"
+        _ocr_status = "failed"
         _ocr_error = str(e)
         logger.warning(f"PaddleOCR unavailable, using mock mode: {e}")
 
-def get_ocr():
-    global _ocr
-    if _ocr is not None:
-        return _ocr
-    return None
 
-async def ocr_image(image_bytes: bytes) -> str:
+def init_ocr_background():
+    """Kick off OCR initialisation on a daemon thread so app startup does
+    not block for 1-2 minutes waiting on PaddleOCR model loading. Health
+    endpoint reports ``initializing`` until ``_do_init`` finishes.
+    """
+    global _ocr_status
+    with _ocr_lock:
+        if _ocr_status in ("initializing", "ready"):
+            return
+        _ocr_status = "initializing"
+    thread = threading.Thread(target=_do_init, name="paddleocr-init", daemon=True)
+    thread.start()
+
+
+def get_ocr():
+    return _ocr
+
+
+def _extract_texts(result: Any) -> list[str]:
+    """Extract recognised text lines from a PaddleOCR ``predict``/``ocr`` result.
+
+    Handles the two shapes we have observed in the wild:
+    - 3.x ``predict``: ``[{"rec_texts": [...], "rec_scores": [...], ...}, ...]``
+      or the same dict directly (not wrapped in a list).
+    - Legacy ``ocr``: ``[[[box, (text, score)], ...]]`` per image.
+    Anything else returns ``[]`` rather than raising.
+    """
+    if result is None:
+        return []
+
+    # 3.x predict may return an object with ``.json`` attribute pointing to a
+    # dict with ``res``; unwrap when present.
+    if hasattr(result, "json") and not isinstance(result, (list, tuple, dict, str)):
+        try:
+            result = result.json
+        except Exception:  # noqa: BLE001
+            pass
+    if isinstance(result, dict) and "res" in result and isinstance(result["res"], (list, dict)):
+        result = result["res"]
+
+    items = result if isinstance(result, list) else [result]
+    texts: list[str] = []
+    for item in items:
+        if item is None:
+            continue
+        # 3.x dict shape.
+        if isinstance(item, dict):
+            rec_texts = item.get("rec_texts")
+            if isinstance(rec_texts, list):
+                for t in rec_texts:
+                    if isinstance(t, str) and t.strip():
+                        texts.append(t)
+                continue
+            # Some builds wrap in ``res``.
+            inner = item.get("res") if isinstance(item.get("res"), (list, dict)) else None
+            if inner is not None:
+                texts.extend(_extract_texts(inner))
+                continue
+        # Legacy shape: item is a list of ``[box, (text, score)]``.
+        if isinstance(item, list):
+            for line in item:
+                try:
+                    payload = line[1]
+                    if isinstance(payload, (list, tuple)) and payload:
+                        text = payload[0]
+                    else:
+                        text = payload
+                    if isinstance(text, str) and text.strip():
+                        texts.append(text)
+                except Exception:  # noqa: BLE001
+                    continue
+    return texts
+
+
+def _run_inference(ocr, image_path: str):
+    """Call PaddleOCR, preferring the 3.x ``predict`` API."""
+    predict = getattr(ocr, "predict", None)
+    if callable(predict):
+        return predict(image_path)
+    return ocr.ocr(image_path)
+
+
+_infer_lock = threading.Lock()
+
+
+def _sync_ocr_image(image_bytes: bytes) -> str:
+    """Blocking OCR call. Runs the actual PaddleOCR ``predict``.
+
+    Kept synchronous on purpose so the async wrapper can offload it to
+    a worker thread via ``asyncio.to_thread`` and avoid blocking the
+    FastAPI event loop for the whole 20-30s per image (P0-OCR-02).
+
+    A process-wide lock ensures at most one thread calls ``predict()``
+    at a time. PaddleOCR 3.x holds a single Paddle inference context that
+    is not safe to enter from multiple threads concurrently; without the
+    lock 4 parallel requests deadlock all worker threads (observed:
+    47 threads all Waiting, 0 rows of OCR output after 5 minutes).
+    """
     ocr = get_ocr()
     if ocr is None or _mock_mode:
         raise RuntimeError("OCR_UNAVAILABLE")
@@ -40,17 +194,44 @@ async def ocr_image(image_bytes: bytes) -> str:
     tmp.write(image_bytes)
     tmp.close()
     try:
-        result = ocr.ocr(tmp.name)
-        texts = []
-        if result and result[0]:
-            for line in result[0]:
-                texts.append(line[1][0])
-        return "\n".join(texts) if texts else ""
-    except Exception as e:
+        with _infer_lock:
+            result = _run_inference(ocr, tmp.name)
+        texts = _extract_texts(result)
+        return "\n".join(texts)
+    except Exception as e:  # noqa: BLE001
         logger.error(f"OCR inference error: {e}")
         raise RuntimeError(f"OCR_INFERENCE_ERROR: {e}")
     finally:
         try:
             os.unlink(tmp.name)
-        except:
+        except OSError:
             pass
+
+
+async def ocr_image(image_bytes: bytes) -> str:
+    """Async facade that runs the blocking OCR call in a worker thread."""
+    started = time.monotonic()
+    outcome = "success"
+    error_code = None
+    try:
+        return await asyncio.to_thread(_sync_ocr_image, image_bytes)
+    except Exception as exc:
+        outcome = "error"
+        error_code = str(exc).split(":", 1)[0]
+        raise
+    finally:
+        db = None
+        try:
+            db = SessionLocal()
+            record_runtime_event(
+                db, feature="ocr", engine_kind="ocr", provider="paddleocr", model_name="PaddleOCR",
+                outcome=outcome, duration_ms=round((time.monotonic() - started) * 1000), error_code=error_code,
+            )
+        except Exception:  # Telemetry must not affect OCR requests.
+            logger.warning("Failed to record OCR runtime event", exc_info=True)
+        finally:
+            if db is not None:
+                try:
+                    db.close()
+                except Exception:
+                    logger.warning("Failed to close OCR telemetry session", exc_info=True)

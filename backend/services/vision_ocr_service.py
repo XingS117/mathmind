@@ -45,7 +45,7 @@ async def ocr_with_vision_llm(image_bytes: bytes, config: dict) -> str:
         else:
             return await _call_openai_vision(image_b64, api_key, model, base_url, provider)
     except Exception as e:
-        logger.error(f"Vision LLM OCR failed: {e}")
+        logger.error("Vision LLM OCR request failed (%s)", type(e).__name__)
         return ""
 
 async def _call_openai_vision(image_b64: str, api_key: str, model: str, base_url: str, provider: str) -> str:

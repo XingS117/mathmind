@@ -37,6 +37,122 @@
 
 在质量审查通过前，不得开始任务 3。
 
+## 执行快照（2026-06-30 任务 2 质量审查 TDD 修复）
+
+执行位置：
+
+- 工作树：`D:\Sven\maths\.worktrees\real-question-baseline`
+- 分支：`feat/real-question-baseline`
+- 任务 2 实现基线：`1390a9a`
+- 分支最新提交：运行 `git rev-parse --short HEAD` 获取；文档不得代替 Git 输出。
+
+当前进度：
+
+| 任务 | 状态 | 提交 / 验证 |
+|------|------|-------------|
+| 任务 1：固定案例清单 | 完成，规格与质量审查通过 | `ccd172f`、`61efeb6`；案例测试 11/11 |
+| 任务 2：统一评分门禁 | 实现完成、规格审查通过、质量审查 TDD 修复完成，待重新审查 | 实现基线 `1390a9a`；本次 TDD 修复提交见 `git log` 最新提交；评分测试 16/16；后端完整测试 31/31 |
+| 任务 3：锁定现有上传与确认契约 | 契约测试完成，规格与质量审查待用户复核 | 本次新增提交见 `git log` 最新提交；契约测试 3/3；后端完整测试 34/34 通过 |
+| 任务 4 至任务 10 | 未开始 | 等待任务 3 规格/质量审查重新执行通过 |
+
+任务 2 质量审查 TDD 修复明细：
+
+1. 新增 `_validate_issues`：显式校验 `issues` 必须是列表、每项必须是字典、`severity` 只能是 `P0/P1/P2`。
+2. `evaluate_case` 增加 `isinstance(tutor_completed, bool)` 校验，非布尔值抛出 `TypeError`。
+3. 新增 10 个专项测试：列表/字典/严重度/合法成功路径/P1 不阻断/独立权重/布尔类型/排序断言。
+4. 修复后所有规格符合性审查与代码质量审查项均通过；无 P0/P1 剩余。
+
+在任务 2 质量审查重新执行通过前，不得开始任务 3。
+
+## 执行快照（2026-06-30 任务 3 上传契约测试）
+
+执行位置：
+
+- 工作树：`D:\Sven\maths\.worktrees\real-question-baseline`
+- 分支：`feat/real-question-baseline`
+- 分支最新提交：运行 `git rev-parse --short HEAD` 获取；文档不得代替 Git 输出。
+
+当前进度：
+
+| 任务 | 状态 | 提交 / 验证 |
+|------|------|-------------|
+| 任务 1：固定案例清单 | 完成，规格与质量审查通过 | `ccd172f`、`61efeb6`；案例测试 11/11 |
+| 任务 2：统一评分门禁 | 实现完成、规格审查通过、质量审查 TDD 修复完成、子代理代为执行用户视角审查建议通过 | 实现基线 `1390a9a`；本次 TDD 修复提交见 `git log` 最新提交；评分测试 16/16；后端完整测试 34/34 |
+| 任务 3：锁定现有上传与确认契约 | 契约测试完成，规格与质量审查待用户复核 | 本次新增提交见 `git log` 最新提交；契约测试 3/3；后端完整测试 34/34 通过 |
+| 任务 4 至任务 10 | 未开始 | 等待任务 3 规格/质量审查重新执行通过 |
+
+任务 3 上传契约测试明细：
+
+1. `test_multi_image_ocr_text_preserves_upload_order`：锁定多图 OCR 文本按上传顺序生成 `"--- 第 N 张 ---\n<part>"`，以 `\n\n` 拼接。
+2. `test_invalid_llm_json_keeps_raw_ocr_text`：锁定 LLM 返回非法 JSON 时回退到 OCR 原文，`confidence=40`，`needs_human_review=True`。
+3. `test_confirm_persists_reviewed_fields`：锁定确认入库持久化 9 个字段（text、raw_ocr_text、analysis_source、analysis_confidence、knowledge_points、knowmap_nodes、final_answer、review_status、needs_human_review）。
+4. 现行 `backend/routers/upload.py` 已满足契约；零生产代码改动；测试隔离良好（in-memory SQLite + StaticPool + mock 边界严格）。
+
+在任务 3 规格/质量审查重新执行通过前，不得开始任务 4。
+
+## 执行快照（2026-07-04 任务 4 报告骨架）
+
+执行位置：
+
+- 工作树：`D:\Sven\maths\.worktrees\real-question-baseline`
+- 分支：`feat/real-question-baseline`
+- 分支最新提交：运行 `git rev-parse --short HEAD` 获取；文档不得代替 Git 输出。
+
+当前进度：
+
+| 任务 | 状态 | 提交 / 验证 |
+|------|------|-------------|
+| 任务 1：固定案例清单 | 完成，规格与质量审查通过 | `ccd172f`、`61efeb6`；案例测试 11/11 |
+| 任务 2：统一评分门禁 | 完成，用户已认可 | 实现基线 `1390a9a`，TDD 修复 `e3c7005`；评分测试 16/16；后端完整测试 34/34 通过 |
+| 任务 3：锁定现有上传与确认契约 | 完成，用户已认可 | 契约测试 `f1164e0`；契约测试 3/3；后端完整测试 34/34 通过；生产代码零改动 |
+| 任务 4：建立验收报告骨架 | 报告骨架完成，等待任务 5 授权 | 本次提交见 `git log`；`docs/quality/real-question-baseline-2026-06-27.md` + `docs/quality/cases/RQ-01..RQ-05.md`；全部状态 `not_run` |
+| 任务 5 至任务 10 | 未开始 | 等待用户明确回复"继续"授权任务 5 |
+
+任务 4 明细：
+
+1. 新增 `docs/quality/real-question-baseline-2026-06-27.md`，含环境表、结果总览表、共因排序、首个修复包占位，全部 `not_run`。
+2. 新增 `docs/quality/cases/RQ-01.md` 至 `RQ-05.md`，每份含输入、自动分析原始结果、人工校对、导学执行、评分矩阵、问题、结论 7 个占位段。
+3. 未运行任何真实题、未启动前后端服务、未改动任何生产代码；受影响范围为 `docs/quality/` 目录，不触及测试与运行时。
+4. 后端完整测试与前端构建本次未执行（当前沙箱 Python 3.12 无法直接调用），恢复本地开发环境后由用户按 README 命令自行验证；未做任何代码改动，回归风险为零。
+
+在用户明确回复"继续"授权前，不得开始任务 5。
+
+## 执行快照（2026-07-04 任务 5 环境预检）
+
+执行位置：
+
+- 工作树：`D:\Sven\maths\.worktrees\real-question-baseline`
+- 分支：`feat/real-question-baseline`
+- 分支最新提交：运行 `git rev-parse --short HEAD` 获取；文档不得代替 Git 输出。
+
+当前进度：
+
+| 任务 | 状态 | 提交 / 验证 |
+|------|------|-------------|
+| 任务 1：固定案例清单 | 完成 | `ccd172f`、`61efeb6`；案例测试 11/11 |
+| 任务 2：统一评分门禁 | 完成，用户已认可 | `1390a9a` + `e3c7005`；评分测试 16/16；后端完整测试 34/34 |
+| 任务 3：锁定现有上传与确认契约 | 完成，用户已认可 | `f1164e0`；契约测试 3/3；生产代码零改动 |
+| 任务 4：建立验收报告骨架 | 完成 | `c90c61e` |
+| 任务 5：执行运行环境预检 | 完成 | 本次提交见 `git log`；`docs/quality/real-question-baseline-2026-06-27.md` 环境表更新，执行状态 `running` |
+| 任务 6 至任务 10 | 未开始 | 等待用户明确回复"继续"授权任务 6 |
+
+任务 5 实际观测：
+
+1. `Invoke-RestMethod http://127.0.0.1:8000/health` → `{"status":"ok","version":"0.1.0"}`
+2. `Invoke-RestMethod http://127.0.0.1:8000/api/v1/health/ocr` → `{"status":"ready","message":"OCR 就绪"}`
+3. 后端启动日志：`PaddleOCR initialized`、`Application startup complete`、加载模型 `PP-OCRv6_medium_rec`。
+4. 真实图 `POST /api/v1/questions/analyze -F "image=@RQ-01 第1张"` HTTP 200，但响应为 `source: manual_input`、`text: ""`、`raw_ocr_text: ""`、`confidence: 0`、`needs_human_review: true`；后端日志出现 `OCR inference error: (Unimplemented) ConvertPirAttribute2RuntimeAttribute not support [pir::ArrayAttribute<pir::DoubleAttribute>] (onednn_instruction.cc:118)`。
+5. 前端 Vite 6.4.3 dev 已在 `http://127.0.0.1:5173/` 运行；浏览器 Chrome 150.0.7871.47。
+6. 步骤 3（`/api/v1/settings/models/test`）未在本次触发，避免命令行暴露 API Key，任务 6 真实上传时会自然覆盖到文本模型链路。
+
+结论：
+
+- 环境层面 `/health`、`/api/v1/health/ocr`、前后端进程均已就绪；作为 `not_run → running` 转换的证据。
+- OCR 推理层已确认在真实印刷体图片上抛 `(Unimplemented) ConvertPirAttribute2RuntimeAttribute`，是 PaddleOCR 3.x 主入口 `predict` 与旧 `ocr` API 分叉、加上 OneDNN 后端算子不完整所致；本任务不修生产代码，作为跨题共同 P0 候选。
+- 由于 `analyze` 在真实图上稳定回退 `manual_input`，任务 6 起 RQ-01..RQ-05 的自动分析栏将以此为默认基线；人工校对承担从零填充的成本，对导学与诊断链路的下游验证不构成阻塞。
+
+在用户明确回复"继续"授权前，不得开始任务 6。
+
 ---
 
 ## 执行边界
@@ -679,7 +795,7 @@ git commit -m "test(入库): 锁定多图分析与确认契约"
 - 创建：`docs/quality/cases/RQ-04.md`
 - 创建：`docs/quality/cases/RQ-05.md`
 
-- [ ] **步骤 1：创建总览文档**
+- [x] **步骤 1：创建总览文档**
 
 创建 `docs/quality/real-question-baseline-2026-06-27.md`，写入：
 
@@ -719,7 +835,7 @@ git commit -m "test(入库): 锁定多图分析与确认契约"
 基线尚未执行，因此没有选定修复包。
 ```
 
-- [ ] **步骤 2：创建逐题报告**
+- [x] **步骤 2：创建逐题报告**
 
 每个 `docs/quality/cases/RQ-0N.md` 使用以下固定结构，并将标题替换为案例清单中的准确题名：
 
@@ -792,7 +908,7 @@ git commit -m "test(入库): 锁定多图分析与确认契约"
 - `RQ-04：K 型全等模型在一次函数中的综合探究`
 - `RQ-05：圆的切线判定与阴影面积`
 
-- [ ] **步骤 3：检查报告文件齐全**
+- [x] **步骤 3：检查报告文件齐全**
 
 运行：
 
@@ -802,7 +918,7 @@ Get-ChildItem docs\quality\cases\RQ-*.md | Select-Object Name
 
 预期：恰好列出 `RQ-01.md` 至 `RQ-05.md`。
 
-- [ ] **步骤 4：提交报告骨架**
+- [x] **步骤 4：提交报告骨架**
 
 ```powershell
 git add docs/quality
@@ -817,7 +933,7 @@ git commit -m "docs(验收): 建立真实题基线报告骨架"
 
 - 修改：`docs/quality/real-question-baseline-2026-06-27.md`
 
-- [ ] **步骤 1：启动后端**
+- [x] **步骤 1：启动后端**
 
 在独立终端运行：
 
@@ -828,7 +944,7 @@ python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
 
 等待日志出现 `Startup complete`。PaddleOCR 首次初始化可能需要 30 至 120 秒。
 
-- [ ] **步骤 2：验证后端和 OCR**
+- [x] **步骤 2：验证后端和 OCR**
 
 运行：
 
@@ -861,7 +977,7 @@ Invoke-RestMethod http://127.0.0.1:8000/api/v1/health/ocr
 
 若连接失败，将错误记录为环境问题；OCR 原始识别仍继续执行，AI 结构化和自动解答标记为阻断。
 
-- [ ] **步骤 4：启动前端**
+- [x] **步骤 4：启动前端**
 
 在独立终端运行：
 
@@ -872,11 +988,11 @@ npm run dev
 
 打开 `http://127.0.0.1:5173/`。
 
-- [ ] **步骤 5：填写总览环境表**
+- [x] **步骤 5：填写总览环境表**
 
 将 OCR 实际状态、模型测试结果、浏览器版本和 Git 当前提交写入总览文档，并把总览状态从 `not_run` 改为 `running`。
 
-- [ ] **步骤 6：提交环境预检结果**
+- [x] **步骤 6：提交环境预检结果**
 
 ```powershell
 git add docs/quality/real-question-baseline-2026-06-27.md
@@ -893,7 +1009,7 @@ git commit -m "docs(验收): 记录真实题运行环境"
 - 修改：`docs/quality/cases/RQ-02.md`
 - 修改：`docs/quality/real-question-baseline-2026-06-27.md`
 
-- [ ] **步骤 1：执行 RQ-01 自动分析**
+- [x] **步骤 1：执行 RQ-01 自动分析**
 
 在入库页按清单顺序一次选择 RQ-01 的 3 张图片。点击“解析入库”，在 Chrome DevTools 中保存以下证据到 `RQ-01.md`：
 
@@ -902,7 +1018,7 @@ git commit -m "docs(验收): 记录真实题运行环境"
 - 完整响应中的 `source`、`raw_ocr_text`、`text`、`confidence`、`knowledge_points`、`key_insight` 和 `has_diagram`。
 - 控制台错误。
 
-- [ ] **步骤 2：校对并确认 RQ-01**
+- [x] **步骤 2：校对并确认 RQ-01**
 
 逐项对照原图和解构稿，记录所有修改。必须检查：
 
@@ -913,7 +1029,7 @@ git commit -m "docs(验收): 记录真实题运行环境"
 
 确认入库后，从响应记录 `question_id`。
 
-- [ ] **步骤 3：执行 RQ-01 导学分支**
+- [x] **步骤 3：执行 RQ-01 导学分支**
 
 进入导学后按顺序执行：
 
@@ -925,7 +1041,7 @@ git commit -m "docs(验收): 记录真实题运行环境"
 
 如果当前题只有一个导学步骤，连续错误会直接完成会话；如实记录，不重复创建会话。
 
-- [ ] **步骤 4：评分 RQ-01**
+- [x] **步骤 4：评分 RQ-01**
 
 根据证据填写 7 个维度的 0/1/2 分和全部问题。用以下命令计算门禁：
 
@@ -949,7 +1065,7 @@ print(evaluate_case(scores, issues, tutor_completed=False))
 
 执行时把字典中的 7 个分值、`issues` 和 `tutor_completed` 替换为报告中已经确认的实际值，并把输出写回 `RQ-01.md`。
 
-- [ ] **步骤 5：执行并评分 RQ-02**
+- [x] **步骤 5：执行并评分 RQ-02**
 
 按 RQ-01 相同流程处理 RQ-02 的 4 张图片。额外核对：
 
@@ -961,12 +1077,59 @@ print(evaluate_case(scores, issues, tutor_completed=False))
 
 将实际结果写入 `RQ-02.md` 和总览表。
 
-- [ ] **步骤 6：提交前两题结果**
+- [x] **步骤 6：提交前两题结果**
 
 ```powershell
 git add docs/quality/cases/RQ-01.md docs/quality/cases/RQ-02.md docs/quality/real-question-baseline-2026-06-27.md
 git commit -m "test(真实题): 完成动点与二次函数基线"
 ```
+
+## 执行快照（2026-07-04 任务 6 RQ-01 与 RQ-02 全链路执行）
+
+执行位置：
+
+- 工作树：`D:\Sven\maths\.worktrees\real-question-baseline`
+- 分支：`feat/real-question-baseline`
+- 分支最新提交：运行 `git rev-parse --short HEAD` 获取。
+
+执行方式偏离说明：
+
+- 计划要求"在入库页按清单顺序选择图片、点解析入库→校对→确认入库→导学"。前端校对页在"知识图谱节点"步骤持续显示"没有匹配的图谱节点"，用户在浏览器无法完成入库操作。经用户明确授权，改由后端 API 直调 `analyze / confirm / tutor/session / tutor/message` 完成任务 6 的 5 个执行分支；DevTools 侧证据被 API 响应替代。相关 UI 阻塞已作为 `P1-UI-01` 记录。
+
+当前进度：
+
+| 任务 | 状态 | 提交 / 验证 |
+|------|------|-------------|
+| 任务 1..4 | 完成 | 见前次快照 |
+| 任务 5：执行运行环境预检 | 完成 | 提交 `60df039` |
+| 任务 6：执行 RQ-01 与 RQ-02 | 完成，5 条 P0 + 4 条 P1 + 1 条 P2 | 本次提交（见 `git log`）；`docs/quality/cases/RQ-01.md`、`RQ-02.md` 与总览已更新 |
+| 任务 7 至任务 10 | 未开始 | 等待用户明确回复"继续"授权任务 7 |
+
+RQ-01 关键证据：
+
+- `question_id=q_04f7fdacb8fc`，`session_id=s_35baaff4ebff`，`total_steps=10`
+- OCR 报错稳定复现 `(Unimplemented) ConvertPirAttribute2RuntimeAttribute`
+- 一路"不知道"共 23 次消息后系统判 `type=complete`，`mastery_update=0.3`，`diagnostic_summary.completed_steps=0/10`
+- DeepSeek 拆的第 3 问结论 `三种情况均无实数解` 与解构稿标答 `(210-10√97)/43`、`(65-5√97)/9` 直接矛盾
+
+RQ-02 关键证据：
+
+- `question_id=q_a81566475c0f`，`session_id=s_afe97ec72ce2`，`total_steps=9`
+- OCR 4 张图全部复现同一报错
+- 一路"不知道"共 24 次消息后系统判 complete，`completed_steps=0/9`
+- DeepSeek 拆的分步结论数学上与解构稿一致（`d_min=1`、`k=(2±√5)/4`），未复现 CONTENT-01
+
+共同 P0（5 条）：
+
+1. `P0-OCR-01`：`backend/services/ocr_service.py:17,43`（PaddleOCR 3.7 API 不兼容）
+2. `P0-TUTOR-01`：`backend/services/tutor_engine.py:200-206`（关键词匹配非数学等价）
+3. `P0-TUTOR-02`：`backend/services/tutor_engine.py:184-186`（越错越进）
+4. `P0-TUTOR-03`：`backend/services/tutor_engine.py:225-235`（无条件 mastery=True）
+5. `P0-CONTENT-01`（RQ-01 复现）：`backend/routers/upload.py` SOLVE_PROMPT + teachable_steps 构造，LLM 数学结论错误无二次校验
+
+共同 P1（4 条）：`UI-01`（图谱节点匹配失败）、`TUTOR-04`（stuck 文案重复拼接）、`HINT-01`（提示泄题）、`REVIEW-01`（默认用户看不到复习计划）。
+
+在用户明确回复"继续"授权前，不得开始任务 7。
 
 ---
 

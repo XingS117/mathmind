@@ -1,11 +1,15 @@
 import json, logging
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session as DBSession
 from sqlalchemy import func
+from sqlalchemy.exc import OperationalError
 from backend.database import get_db
 from backend.models.question import Question
 from backend.models.session import Session
 from backend.models.mastery import Mastery
+from backend.models.mastery_change_event import MasteryChangeEvent
+from backend.models.review import ReviewSchedule
 from backend.schemas.api_schemas import DashboardData
 from backend.services.auth_service import get_user_id
 from backend.services.knowmap_service import get_node
@@ -71,7 +75,7 @@ def _recent_diagnostic_weak_points(
 
 @router.get("/learn/dashboard", response_model=DashboardData)
 def dashboard(request: Request, db: DBSession = Depends(get_db)):
-    uid = get_user_id(request)
+    uid = get_user_id(request, db=db)
     q_count = db.query(Question).filter(Question.user_id == uid).count()
     s_count = db.query(Session).filter(Session.user_id == uid).count()
     avg = db.query(func.avg(Mastery.score)).filter(Mastery.user_id == uid).scalar() or 0
@@ -99,23 +103,47 @@ def dashboard(request: Request, db: DBSession = Depends(get_db)):
             for kp in (kps or [])[:2]:
                 node_counts[kp] = node_counts.get(kp, 0) + 1
     top_studied = sorted(node_counts.items(), key=lambda x: -x[1])[:6]
+    now = datetime.utcnow()
+    due_reviews = db.query(ReviewSchedule).filter(
+        ReviewSchedule.user_id == uid,
+        ReviewSchedule.completed == False,
+        ReviewSchedule.scheduled_date <= now,
+    ).order_by(ReviewSchedule.scheduled_date).limit(3).all()
+    try:
+        mastery_change = db.query(func.sum(MasteryChangeEvent.delta)).filter(
+            MasteryChangeEvent.user_id == uid,
+            MasteryChangeEvent.occurred_at >= now - timedelta(days=7),
+        ).scalar() or 0
+    except OperationalError as error:
+        # A process that has not restarted since this migration has no events yet.
+        if "mastery_change_events" not in str(error):
+            raise
+        mastery_change = 0
 
     return DashboardData(
         total_questions=q_count, total_sessions=s_count,
         avg_mastery=round(float(avg), 2), weak_points=weak_points,
         recent_sessions=[{"id": s.id, "status": s.status} for s in recent],
-        top_studied=[{"node": k, "count": v} for k, v in top_studied]
+        top_studied=[{"node": k, "count": v} for k, v in top_studied],
+        due_reviews=[{
+            "id": review.id,
+            "question_id": review.question_id,
+            "round": review.review_round,
+            "type": review.review_type,
+            "scheduled_date": str(review.scheduled_date)[:10],
+        } for review in due_reviews],
+        mastery_change=round(float(mastery_change), 2),
     )
 
 @router.get("/learn/progress")
 def progress(request: Request, db: DBSession = Depends(get_db)):
-    records = db.query(Mastery).filter(Mastery.user_id == get_user_id(request)).all()
+    records = db.query(Mastery).filter(Mastery.user_id == get_user_id(request, db=db)).all()
     return {"mastery": [{"node_id": m.node_id, "score": m.score} for m in records]}
 
 @router.get("/learn/history")
 def history(request: Request, db: DBSession = Depends(get_db)):
     sessions = db.query(Session).filter(
-        Session.user_id == get_user_id(request)
+        Session.user_id == get_user_id(request, db=db)
     ).order_by(Session.last_active.desc()).limit(20).all()
     return {"sessions": [
         {"id": s.id, "question_id": s.question_id, "status": s.status,
