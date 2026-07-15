@@ -54,7 +54,7 @@ export default function LoginPage({ onLogin }: Props) {
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <input placeholder="用户名" value={username} onChange={e => setUsername(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSubmit()} style={inputStyle} />
         {mode === "register" && <input placeholder="显示姓名" value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSubmit()} style={inputStyle} />}
-        <input type="password" placeholder={mode === "register" ? "密码（8-128位）" : "密码"} value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSubmit()} style={inputStyle} />
+        <input type="password" placeholder={mode === "register" ? "密码（8–128 位）" : "密码"} value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSubmit()} style={inputStyle} />
         {error && <p style={{ fontSize: 12, color: "var(--error)", margin: 0 }}>{error}</p>}
         <button onClick={handleSubmit} disabled={loading}
           style={{ padding: "10px", background: "var(--brand)", color: "#fff", border: "none", borderRadius: "var(--radius-sm)", cursor: "pointer", fontSize: 14, fontWeight: 500 }}>

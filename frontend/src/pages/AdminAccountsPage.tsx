@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { AccountOverview, getAccountsOverview, resetAccountPassword, setAccountActive } from "../services/api";
 
+import { isPasswordLengthValid, PASSWORD_LENGTH_MESSAGE } from "../utils/passwordPolicy";
+
 function formatTime(value: string | null) {
   return value ? value.replace("T", " ").slice(0, 16) : "—";
 }
@@ -36,8 +38,8 @@ export default function AdminAccountsPage() {
 
   const submitResetPassword = async () => {
     if (!resetTarget) return;
-    if (newPassword.length < 8) {
-      setMessage("新密码至少 8 位");
+    if (!isPasswordLengthValid(newPassword)) {
+      setMessage(PASSWORD_LENGTH_MESSAGE);
       return;
     }
     if (!window.confirm(`确定重置「${resetTarget.username}」的密码？`)) return;
@@ -78,7 +80,7 @@ export default function AdminAccountsPage() {
         <div style={{ width: "min(100%, 360px)", padding: 20, background: "var(--card)", borderRadius: "var(--radius)", boxShadow: "0 12px 36px rgba(0,0,0,0.2)" }}>
           <h3 style={{ margin: "0 0 8px", fontSize: 16 }}>重置密码</h3>
           <p style={{ margin: "0 0 14px", fontSize: 13, color: "var(--text-secondary)" }}>为「{resetTarget.username}」设置新的登录密码。</p>
-          <input type="password" autoComplete="new-password" autoFocus placeholder="新密码（至少 8 位）" value={newPassword} onChange={e => setNewPassword(e.target.value)} style={{ width: "100%", boxSizing: "border-box", padding: "9px 12px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)" }} />
+          <input type="password" autoComplete="new-password" autoFocus placeholder="新密码（8–128 位）" value={newPassword} onChange={e => setNewPassword(e.target.value)} style={{ width: "100%", boxSizing: "border-box", padding: "9px 12px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)" }} />
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
             <button onClick={cancelResetPassword} style={{ padding: "8px 14px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", background: "var(--card)", cursor: "pointer" }}>取消</button>
             <button onClick={() => void submitResetPassword()} style={{ padding: "8px 14px", border: "none", borderRadius: "var(--radius-sm)", background: "var(--brand)", color: "#fff", cursor: "pointer" }}>确认重置</button>
