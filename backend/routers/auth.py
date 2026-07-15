@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session as DBSession
 from backend.database import get_db
 from backend.models.user import User
 from backend.services.auth_service import hash_password, verify_password, needs_password_upgrade, create_token, get_user_id
+from backend.services.password_policy import validate_password_length
 from backend.services.operations_service import client_ip, record_login_event
 from backend.services.referral_service import attribute_registration
 from backend.services.rate_limit_service import rate_limiter
@@ -17,11 +18,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["auth"])
 DUMMY_PASSWORD_HASH = hash_password("invalid-password-placeholder")
 
-
-def _validate_password_length(value: str) -> str:
-    if not 8 <= len(value) <= 128:
-        raise ValueError("密码长度需为 8-128 位")
-    return value
 
 class LoginRequest(BaseModel):
     username: str
@@ -42,7 +38,7 @@ class RegisterRequest(BaseModel):
 
     @validator("password")
     def password_is_valid(cls, value):
-        return _validate_password_length(value)
+        return validate_password_length(value)
 
     @validator("name")
     def name_is_valid(cls, value):
@@ -148,7 +144,7 @@ def change_password(req: ChangePasswordRequest, request: Request, db: DBSession 
     if not user:
         raise HTTPException(404, "用户不存在")
     try:
-        _validate_password_length(req.new_password)
+        validate_password_length(req.new_password)
     except ValueError as exc:
         raise HTTPException(400, str(exc))
     if not verify_password(req.old_password, user.password_hash):

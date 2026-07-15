@@ -8,6 +8,7 @@ from backend.models.user import User
 from backend.models.operations import AdminAuditEvent, LoginEvent, RuntimeEvent
 from backend.models.referral import ReferralAttribution, ReferralVisit
 from backend.services.auth_service import hash_password, get_user_id
+from backend.services.password_policy import validate_password_length
 from fastapi import Request
 
 logger = logging.getLogger(__name__)
@@ -46,8 +47,10 @@ def create_user(req: CreateUserRequest, request: Request, db: DBSession = Depend
     existing = db.query(User).filter(User.username == req.username).first()
     if existing:
         raise HTTPException(400, "用户名已存在")
-    if len(req.password) < 6:
-        raise HTTPException(400, "密码至少6位")
+    try:
+        validate_password_length(req.password)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
     uid = f"u_{uuid.uuid4().hex[:12]}"
     user = User(id=uid, username=req.username, password_hash=hash_password(req.password), name=req.name, role="user", school_level=req.school_level)
     db.add(user)
@@ -94,8 +97,10 @@ def update_user_status(user_id: str, req: UpdateUserStatusRequest, request: Requ
 @router.post("/admin/users/{user_id}/reset-password")
 def reset_password(user_id: str, req: ResetPasswordRequest, request: Request, db: DBSession = Depends(get_db)):
     admin = require_admin(request, db)
-    if not 8 <= len(req.new_password) <= 128:
-        raise HTTPException(400, "密码长度需为 8-128 位")
+    try:
+        validate_password_length(req.new_password)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(404, "用户不存在")

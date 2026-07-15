@@ -115,6 +115,29 @@ class OperationsAdminTest(unittest.TestCase):
         finally:
             db.close()
 
+    def test_admin_password_endpoints_enforce_eight_to_128_characters(self):
+        for password in ("a" * 7, "a" * 129):
+            with self.subTest(password_length=len(password)):
+                created = self.client.post(
+                    "/api/v1/admin/users",
+                    json={"username": f"boundary-{len(password)}", "password": password, "name": "边界用户"},
+                    headers=self.admin_headers,
+                )
+                self.assertEqual(created.status_code, 400)
+                reset = self.client.post(
+                    f"/api/v1/admin/users/{self.user_id}/reset-password",
+                    json={"new_password": password}, headers=self.admin_headers,
+                )
+                self.assertEqual(reset.status_code, 400)
+
+        for password in ("a" * 8, "a" * 128):
+            with self.subTest(password_length=len(password)):
+                reset = self.client.post(
+                    f"/api/v1/admin/users/{self.user_id}/reset-password",
+                    json={"new_password": password}, headers=self.admin_headers,
+                )
+                self.assertEqual(reset.status_code, 200)
+
     def test_accounts_overview_exposes_only_safe_login_metadata(self):
         db = self.SessionLocal()
         try:
