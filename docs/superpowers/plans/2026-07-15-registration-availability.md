@@ -16,7 +16,7 @@
 - 修改：`backend/routers/auth.py:27-82`
 - 修改：`backend/tests/test_auth_registration.py:121-160`
 
-- [ ] **步骤 1：编写失败的接口测试**
+- [x] **步骤 1：编写失败的接口测试**
 
 在 `PublicAuthFlowTest` 增加：
 
@@ -32,13 +32,13 @@ def test_username_availability_reuses_registration_format_rule(self):
     self.assertTrue(response.json()["detail"][0]["msg"].endswith("用户名仅支持 3–32 位英文字母或数字"))
 ```
 
-- [ ] **步骤 2：运行测试验证失败**
+- [x] **步骤 2：运行测试验证失败**
 
 运行：`python -m unittest backend.tests.test_auth_registration.PublicAuthFlowTest.test_username_availability_reports_available_and_taken -v`
 
 预期：FAIL，当前路由不存在并返回 404。
 
-- [ ] **步骤 3：实现最少接口代码**
+- [x] **步骤 3：实现最少接口代码**
 
 在 `auth.py` 新增：
 
@@ -51,19 +51,19 @@ class UsernameAvailabilityRequest(BaseModel):
         return validate_registration_username(value)
 
 @router.get("/auth/username-availability")
-def username_availability(req: UsernameAvailabilityRequest = Depends(), request: Request = None, db: DBSession = Depends(get_db)):
+def username_availability(request: Request, req: UsernameAvailabilityRequest = Depends(), db: DBSession = Depends(get_db)):
     if not rate_limiter.allow(client_ip(request), "username_availability", limit=60):
         raise HTTPException(429, "用户名检查过于频繁，请稍后再试")
     return {"available": db.query(User).filter(User.username == req.username).first() is None}
 ```
 
-- [ ] **步骤 4：运行接口测试验证通过**
+- [x] **步骤 4：运行接口测试验证通过**
 
 运行：`python -m unittest backend.tests.test_auth_registration -v`
 
 预期：可用、占用和格式错误场景通过，既有注册限流测试保持通过。
 
-- [ ] **步骤 5：提交后端接口**
+- [x] **步骤 5：提交后端接口**
 
 ```powershell
 git add backend/routers/auth.py backend/tests/test_auth_registration.py
@@ -78,7 +78,7 @@ git commit -m "feat(注册): 查询用户名可用性"
 - 创建：`frontend/src/utils/registrationAvailability.test.ts`
 - 修改：`frontend/src/pages/LoginPage.tsx:1-90`
 
-- [ ] **步骤 1：编写失败的状态判定测试**
+- [x] **步骤 1：编写失败的状态判定测试**
 
 创建 `registrationAvailability.test.ts`：
 
@@ -97,13 +97,13 @@ describe("registration availability", () => {
 });
 ```
 
-- [ ] **步骤 2：运行测试验证失败**
+- [x] **步骤 2：运行测试验证失败**
 
 运行：`npm test -- registrationAvailability.test.ts`
 
 预期：FAIL，模块尚不存在。
 
-- [ ] **步骤 3：实现最少状态辅助函数和 API 调用**
+- [x] **步骤 3：实现最少状态辅助函数和 API 调用**
 
 创建 `registrationAvailability.ts`，导出 `UsernameAvailabilityStatus`、`canSubmitRegistration` 和 `usernameAvailabilityMessage`；在 `api.ts` 增加：
 
@@ -114,15 +114,15 @@ export async function checkUsernameAvailability(username: string, signal?: Abort
 }
 ```
 
-在 `LoginPage` 使用 `useEffect`：有效用户名 400ms 后调用检查接口；输入改变和卸载时调用 `AbortController.abort()`；仅将当前请求结果写入状态。用辅助函数计算按钮可用性，显示检查中、可用、已占用和检查失败的明确文案。
+在 `LoginPage` 使用 `useEffect`：有效用户名 400ms 后调用检查接口；输入改变和卸载时调用 `AbortController.abort()`；仅将当前请求结果写入状态。用辅助函数计算按钮可用性，显示检查中、可用、已占用和检查失败的明确文案。显示姓名为空或超过 32 位时立即提示并禁用提交；提交收到“用户名已存在”时，将用户名状态改为 `taken`，让错误定位在用户名字段。
 
-- [ ] **步骤 4：运行前端测试验证通过**
+- [x] **步骤 4：运行前端测试验证通过**
 
 运行：`npm test -- registrationAvailability.test.ts; node --test src/services/apiResponse.test.mjs; npx tsc --noEmit`
 
 预期：状态判定、接口错误转换和类型检查均通过。
 
-- [ ] **步骤 5：提交前端交互**
+- [x] **步骤 5：提交前端交互**
 
 ```powershell
 git add frontend/src/services/api.ts frontend/src/utils/registrationAvailability.ts frontend/src/utils/registrationAvailability.test.ts frontend/src/pages/LoginPage.tsx
@@ -134,17 +134,17 @@ git commit -m "feat(注册): 即时提示用户名可用性"
 **文件：**
 - 修改：`docs/DEPLOYMENT-live.md:108-117`
 
-- [ ] **步骤 1：修正生产 SQLite 目录权限**
+- [x] **步骤 1：修正生产 SQLite 目录权限**
 
 运行：`sudo chown -R ubuntu:ubuntu /data/mathmind/app/data && sudo chmod 750 /data/mathmind/app/data && sudo chmod 640 /data/mathmind/app/data/mathmind.db && sudo systemctl restart mathmind`
 
 预期：服务为 `active`，服务运行用户可创建 SQLite journal 文件。
 
-- [ ] **步骤 2：写入部署权限防回归说明**
+- [x] **步骤 2：写入部署权限防回归说明**
 
 在 `DEPLOYMENT-live.md` 更新解压命令，明确解压后执行 `sudo chown -R ubuntu:ubuntu /data/mathmind/app/data`，并说明不要用 root 创建持久 SQLite 目录。
 
-- [ ] **步骤 3：运行完整自动化回归**
+- [x] **步骤 3：运行完整自动化回归**
 
 运行：
 

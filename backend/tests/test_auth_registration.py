@@ -156,6 +156,38 @@ class PublicAuthFlowTest(unittest.TestCase):
         self.assertEqual(self.register(username="abc").status_code, 201)
         self.assertEqual(self.register(username="a" * 32).status_code, 201)
 
+    def test_username_availability_reports_available_and_taken(self):
+        available = self.client.get(
+            "/api/v1/auth/username-availability", params={"username": "freeuser"}, headers=self.headers
+        )
+        self.assertEqual(available.status_code, 200)
+        self.assertEqual(available.json(), {"available": True})
+
+        self.assertEqual(self.register(username="takenuser").status_code, 201)
+        taken = self.client.get(
+            "/api/v1/auth/username-availability", params={"username": "takenuser"}, headers=self.headers
+        )
+        self.assertEqual(taken.status_code, 200)
+        self.assertEqual(taken.json(), {"available": False})
+
+    def test_username_availability_reuses_registration_format_rule(self):
+        response = self.client.get(
+            "/api/v1/auth/username-availability", params={"username": "中文用户"}, headers=self.headers
+        )
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.json()["detail"], "用户名仅支持 3–32 位英文字母或数字")
+
+    def test_username_availability_is_rate_limited(self):
+        for _ in range(60):
+            response = self.client.get(
+                "/api/v1/auth/username-availability", params={"username": "freeuser"}, headers=self.headers
+            )
+            self.assertEqual(response.status_code, 200)
+        response = self.client.get(
+            "/api/v1/auth/username-availability", params={"username": "freeuser"}, headers=self.headers
+        )
+        self.assertEqual(response.status_code, 429)
+
     def test_unknown_username_and_wrong_password_have_same_message(self):
         self.assertEqual(self.register().status_code, 201)
         unknown = self.client.post(

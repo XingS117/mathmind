@@ -119,6 +119,11 @@ export async function register(username: string, password: string, name: string)
   });
 }
 
+export async function checkUsernameAvailability(username: string, signal?: AbortSignal): Promise<boolean> {
+  const params = new URLSearchParams({ username });
+  return (await apiJsonOrThrow<{ available: boolean }>(`/auth/username-availability?${params}`, { signal })).available;
+}
+
 export async function fetchMe(): Promise<AuthUser> {
   return apiJson<AuthUser>("/auth/me");
 }

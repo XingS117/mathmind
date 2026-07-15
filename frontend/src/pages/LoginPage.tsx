@@ -1,7 +1,8 @@
-import { useState } from "react";
-import { login, register } from "../services/api";
+import { useEffect, useState } from "react";
+import { checkUsernameAvailability, login, register } from "../services/api";
 import { isPasswordLengthValid, PASSWORD_LENGTH_MESSAGE } from "../utils/passwordPolicy";
 import { isRegistrationUsernameValid, USERNAME_FORMAT_MESSAGE } from "../utils/usernamePolicy";
+import { canSubmitRegistration, usernameAvailabilityMessage, UsernameAvailabilityStatus } from "../utils/registrationAvailability";
 
 interface Props {
   onLogin: (token: string) => void;
@@ -14,10 +15,42 @@ export default function LoginPage({ onLogin }: Props) {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [usernameStatus, setUsernameStatus] = useState<UsernameAvailabilityStatus>("idle");
   const token = localStorage.getItem("token");
   const usernameError = mode === "register" && username && !isRegistrationUsernameValid(username) ? USERNAME_FORMAT_MESSAGE : "";
+  const nameError = mode === "register" && name && name.trim().length > 32 ? "显示姓名长度需为 1-32 位" : "";
   const passwordError = mode === "register" && password && !isPasswordLengthValid(password) ? PASSWORD_LENGTH_MESSAGE : "";
-  const registrationReady = Boolean(username && name.trim() && password) && !usernameError && !passwordError;
+  const usernameValid = mode === "register" && Boolean(username) && !usernameError;
+  const nameValid = mode === "register" && Boolean(name.trim()) && !nameError;
+  const passwordValid = mode === "register" && Boolean(password) && !passwordError;
+  const registrationReady = canSubmitRegistration({ usernameValid, usernameStatus, nameValid, passwordValid });
+  const usernameHint = usernameError || usernameAvailabilityMessage(usernameStatus) || "用户名仅支持 3–32 位英文字母或数字";
+  const usernameHintColor = usernameError || usernameStatus === "taken" || usernameStatus === "error"
+    ? "var(--error)"
+    : usernameStatus === "available" ? "var(--success)" : "#64748b";
+
+  useEffect(() => {
+    if (mode !== "register" || !username || !isRegistrationUsernameValid(username)) {
+      setUsernameStatus("idle");
+      return;
+    }
+    const controller = new AbortController();
+    setUsernameStatus("checking");
+    const timer = window.setTimeout(async () => {
+      try {
+        const available = await checkUsernameAvailability(username, controller.signal);
+        if (!controller.signal.aborted) setUsernameStatus(available ? "available" : "taken");
+      } catch (e: unknown) {
+        if (!controller.signal.aborted && !(e instanceof DOMException && e.name === "AbortError")) {
+          setUsernameStatus("error");
+        }
+      }
+    }, 400);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [mode, username]);
 
   if (token) {
     return (
@@ -40,6 +73,14 @@ export default function LoginPage({ onLogin }: Props) {
       setError(USERNAME_FORMAT_MESSAGE);
       return;
     }
+    if (mode === "register" && !name.trim()) {
+      setError("请输入显示姓名");
+      return;
+    }
+    if (mode === "register" && name.trim().length > 32) {
+      setError("显示姓名长度需为 1-32 位");
+      return;
+    }
     if (mode === "register" && !isPasswordLengthValid(password)) {
       setError(PASSWORD_LENGTH_MESSAGE);
       return;
@@ -52,7 +93,13 @@ export default function LoginPage({ onLogin }: Props) {
       localStorage.setItem("username", username);
       onLogin(session.token);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "网络错误");
+      const message = e instanceof Error ? e.message : "网络错误";
+      if (mode === "register" && message === "用户名已存在") {
+        setUsernameStatus("taken");
+        setError("");
+      } else {
+        setError(message);
+      }
     } finally {
       setLoading(false);
     }
@@ -65,9 +112,10 @@ export default function LoginPage({ onLogin }: Props) {
         {mode === "login" ? "登录" : "注册"}
       </h2>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <input placeholder={mode === "register" ? "用户名（3–32 位字母或数字）" : "用户名"} value={username} onChange={e => setUsername(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSubmit()} style={{ ...inputStyle, borderColor: usernameError ? "var(--error)" : "var(--border)" }} />
-        {mode === "register" && <p style={{ fontSize: 12, color: usernameError ? "var(--error)" : "#64748b", margin: -8 }}>{usernameError || "用户名仅支持 3–32 位英文字母或数字"}</p>}
-        {mode === "register" && <input placeholder="显示姓名" value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSubmit()} style={inputStyle} />}
+        <input placeholder={mode === "register" ? "用户名（3–32 位字母或数字）" : "用户名"} value={username} onChange={e => { setUsername(e.target.value); setUsernameStatus("idle"); }} onKeyDown={e => e.key === "Enter" && handleSubmit()} style={{ ...inputStyle, borderColor: usernameError || usernameStatus === "taken" || usernameStatus === "error" ? "var(--error)" : "var(--border)" }} />
+        {mode === "register" && <p style={{ fontSize: 12, color: usernameHintColor, margin: -8 }}>{usernameHint}</p>}
+        {mode === "register" && <input placeholder="显示姓名（1–32 位）" value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSubmit()} style={{ ...inputStyle, borderColor: nameError ? "var(--error)" : "var(--border)" }} />}
+        {mode === "register" && nameError && <p style={{ fontSize: 12, color: "var(--error)", margin: -8 }}>{nameError}</p>}
         <input type="password" placeholder={mode === "register" ? "密码（8–128 位）" : "密码"} value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSubmit()} style={{ ...inputStyle, borderColor: passwordError ? "var(--error)" : "var(--border)" }} />
         {mode === "register" && password && <p style={{ fontSize: 12, color: passwordError ? "var(--error)" : "var(--success)", margin: -8 }}>{passwordError || "密码长度符合要求"}</p>}
         {error && <p style={{ fontSize: 12, color: "var(--error)", margin: 0 }}>{error}</p>}
@@ -75,7 +123,7 @@ export default function LoginPage({ onLogin }: Props) {
           style={{ padding: "10px", background: "var(--brand)", color: "#fff", border: "none", borderRadius: "var(--radius-sm)", cursor: loading || (mode === "register" && !registrationReady) ? "not-allowed" : "pointer", fontSize: 14, fontWeight: 500, opacity: loading || (mode === "register" && !registrationReady) ? 0.55 : 1 }}>
           {loading ? (mode === "login" ? "登录中..." : "注册中...") : (mode === "login" ? "登录" : "注册并登录")}
         </button>
-        <button onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); }}
+        <button onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); setUsernameStatus("idle"); }}
           style={{ padding: "8px", background: "transparent", color: "var(--brand)", border: "none", cursor: "pointer", fontSize: 13 }}>
           {mode === "login" ? "没有账户？注册" : "已有账户？登录"}
         </button>
