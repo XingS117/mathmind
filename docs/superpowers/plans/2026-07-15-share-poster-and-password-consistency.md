@@ -30,7 +30,7 @@
 - 修改：`backend/routers/admin.py`
 - 测试：`backend/tests/test_operations_admin.py`
 
-- [ ] **步骤 1：先写管理员密码边界失败测试**
+- [x] **步骤 1：先写管理员密码边界失败测试**
 
 在管理员测试类增加：
 
@@ -50,13 +50,13 @@ def test_admin_password_endpoints_enforce_eight_to_128_characters(self):
         self.assertEqual(reset.status_code, 400)
 ```
 
-- [ ] **步骤 2：确认当前实现失败**
+- [x] **步骤 2：确认当前实现失败**
 
 运行：`python -m unittest backend.tests.test_operations_admin -v`
 
 预期：7 位管理员创建密码返回 200，新增测试失败。
 
-- [ ] **步骤 3：实现共享校验**
+- [x] **步骤 3：实现共享校验**
 
 创建：
 
@@ -73,13 +73,13 @@ def validate_password_length(value: str) -> str:
 
 `auth.py` 的注册验证器与修改密码均导入此函数。`admin.py` 的创建和重置路径均调用该函数，捕获 `ValueError` 后转换为 `HTTPException(400, str(exc))`。
 
-- [ ] **步骤 4：运行密码后端回归**
+- [x] **步骤 4：运行密码后端回归**
 
 运行：`python -m unittest backend.tests.test_auth_registration backend.tests.test_operations_admin backend.tests.test_security_boundaries -v`
 
 预期：7/129 位返回 400，现有测试均通过。
 
-- [ ] **步骤 5：提交**
+- [x] **步骤 5：提交**
 
 ```powershell
 git add backend/services/password_policy.py backend/routers/auth.py backend/routers/admin.py backend/tests/test_operations_admin.py
@@ -93,7 +93,7 @@ git commit -m "fix(账户): 统一管理员密码长度规则"
 - 创建：`frontend/src/utils/passwordPolicy.ts`、`frontend/src/utils/passwordPolicy.test.ts`
 - 创建：`frontend/src/utils/sharePromotion.ts`、`frontend/src/utils/sharePromotion.test.ts`
 
-- [ ] **步骤 1：安装依赖并写失败测试**
+- [x] **步骤 1：安装依赖并写失败测试**
 
 运行：
 
@@ -103,7 +103,7 @@ npm install qrcode
 npm install --save-dev vitest @types/qrcode
 ```
 
-在 `package.json` 加入 `"test": "vitest run"`。创建测试：
+在 `package.json` 加入 `"test": "vitest run src/utils"`，避免把现有使用 Node 原生 `node:test` 的 `.test.mjs` 纳入 Vitest。创建测试：
 
 ```ts
 import { describe, expect, it } from "vitest";
@@ -130,13 +130,13 @@ describe("buildPromotionText", () => {
 });
 ```
 
-- [ ] **步骤 2：运行失败测试**
+- [x] **步骤 2：运行失败测试**
 
 运行：`npm test`
 
 预期：FAIL，两个被测模块尚不存在。
 
-- [ ] **步骤 3：实现最小纯函数**
+- [x] **步骤 3：实现最小纯函数**
 
 ```ts
 // frontend/src/utils/passwordPolicy.ts
@@ -154,7 +154,7 @@ export function buildPromotionText(shareUrl: string): string {
 }
 ```
 
-- [ ] **步骤 4：运行通过测试并提交**
+- [x] **步骤 4：运行通过测试并提交**
 
 运行：`npm test`
 
@@ -172,7 +172,7 @@ git commit -m "test(前端): 覆盖密码与推广文案规则"
 - 修改：`frontend/src/pages/SharePage.tsx`
 
 
-- [ ] **步骤 1：为海报内容写失败测试**
+- [x] **步骤 1：为海报内容写失败测试**
 
 在 `sharePromotion.test.ts` 添加：
 
@@ -189,13 +189,13 @@ it("builds poster content from the caller referral URL", () => {
 });
 ```
 
-- [ ] **步骤 2：确认断言失败**
+- [x] **步骤 2：确认断言失败**
 
 运行：`npm test`
 
 预期：FAIL，`buildSharePosterContent` 尚未导出。
 
-- [ ] **步骤 3：实现海报工具与页面交互**
+- [x] **步骤 3：实现海报工具与页面交互**
 
 在 `sharePromotion.ts` 增加 `buildSharePosterContent(shareUrl)`，返回测试中定义的 `title`、`studentLine`、`parentLine` 与原始 `shareUrl`。`sharePoster.ts` 导入该函数与 `qrcode` 的 `toCanvas`，导出：
 
@@ -209,7 +209,7 @@ export async function sharePoster(blob: Blob): Promise<boolean>;
 
 `SharePage.tsx` 使用 `buildPromotionText(summary.share_url)`；用 `lucide-react` 的 `ImageDown`、`Copy`、`Share2`、`Sparkles` 制作推广卡。提供“保存微信海报”（主按钮）、“复制推广文案”和“更多分享方式”。海报成功后提示“已打开系统分享，请在微信中选择好友或朋友圈”或“海报已保存，请在微信中发送”；生成失败保留复制入口。用 `minmax(0, 1fr)` 和 `overflowWrap: "anywhere"` 保证窄屏显示。
 
-- [ ] **步骤 4：测试、构建、提交**
+- [x] **步骤 4：测试、构建、提交**
 
 运行：
 
@@ -233,21 +233,17 @@ git commit -m "feat(分享): 增加微信推广海报"
 - 修改：`frontend/src/pages/AdminAccountsPage.tsx`
 - 测试：`frontend/src/utils/passwordPolicy.test.ts`
 
-- [ ] **步骤 1：补空字符串边界测试**
+- [x] **步骤 1：复用已通过的密码边界测试**
 
-```ts
-it("rejects an empty password", () => {
-  expect(isPasswordLengthValid("")).toBe(false);
-});
-```
+任务 2 已先行覆盖 7、8、128、129 位边界及服务端一致的错误文本；本任务只将已经验证的纯函数接入页面，不新增独立规则。
 
-- [ ] **步骤 2：运行测试确认策略通过**
+- [x] **步骤 2：运行测试确认策略通过**
 
 运行：`npm test`
 
-预期：空字符串、7、129 位被拒绝，8、128 位通过。
+预期：7、129 位被拒绝，8、128 位通过。
 
-- [ ] **步骤 3：替换 UI 规则与文案**
+- [x] **步骤 3：替换 UI 规则与文案**
 
 两个页面导入 `isPasswordLengthValid` 和 `PASSWORD_LENGTH_MESSAGE`。`SettingsPage` 的修改密码、管理员创建用户，及 `AdminAccountsPage` 的重置密码，统一使用：
 
@@ -260,7 +256,7 @@ if (!isPasswordLengthValid(passwordValue)) {
 
 `AdminAccountsPage` 的 `setMessage` 使用同一错误字符串。占位符统一为“新密码（8–128 位）”或“初始密码（8–128 位）”。
 
-- [ ] **步骤 4：类型检查、构建与提交**
+- [x] **步骤 4：类型检查、构建与提交**
 
 运行：
 
@@ -281,7 +277,7 @@ git commit -m "fix(账户): 统一前端密码长度提示"
 
 **文件：** 无新增产品文件。
 
-- [ ] **步骤 1：执行完整自动化回归**
+- [x] **步骤 1：执行完整自动化回归**
 
 运行：
 
@@ -295,11 +291,11 @@ npm run build
 
 预期：全部通过。
 
-- [ ] **步骤 2：浏览器手动验收**
+- [x] **步骤 2：浏览器手动验收（本地烟测）**
 
-以普通账户登录，确认推广卡与三个入口可见；保存的 PNG 可打开，二维码跳转到当前账户的 `share_url`，复制文本同时包含“学生”“家长”和同一链接。修改密码、创建用户、重置密码分别验证 7、8、128、129 位；所有页面显示“8–128 位”。
+以普通账户登录，已确认推广页及“保存微信海报”“复制推广文案”“更多分享方式”三个入口可见；注册页密码提示显示“8–128 位”。PNG 下载、二维码扫码和微信中的好友/朋友圈选择需要在部署后的真机微信中做最终验收（网页无法直接控制微信收件人选择器）。
 
-- [ ] **步骤 3：检查交付状态**
+- [x] **步骤 3：检查交付状态**
 
 运行：`git status --short`
 
