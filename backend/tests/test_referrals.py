@@ -168,7 +168,7 @@ class ReferralFlowTest(unittest.TestCase):
         self.db.commit()
 
         registered = self.client.post("/api/v1/auth/register", json={
-            "username": "new_invitee", "password": "password-123", "name": "新受邀者",
+            "username": "newinvitee", "password": "password-123", "name": "新受邀者",
             "referral_visit_id": visit_id,
         })
         self.assertEqual(registered.status_code, 201)

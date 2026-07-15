@@ -1,5 +1,4 @@
 import logging
-import re
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -10,6 +9,7 @@ from backend.database import get_db
 from backend.models.user import User
 from backend.services.auth_service import hash_password, verify_password, needs_password_upgrade, create_token, get_user_id
 from backend.services.password_policy import validate_password_length
+from backend.services.username_policy import validate_registration_username
 from backend.services.operations_service import client_ip, record_login_event
 from backend.services.referral_service import attribute_registration
 from backend.services.rate_limit_service import rate_limiter
@@ -32,9 +32,7 @@ class RegisterRequest(BaseModel):
 
     @validator("username")
     def username_is_valid(cls, value):
-        if not re.fullmatch(r"[A-Za-z0-9_-]{3,32}", value):
-            raise ValueError("用户名需为 3-32 位字母、数字、下划线或连字符")
-        return value
+        return validate_registration_username(value)
 
     @validator("password")
     def password_is_valid(cls, value):

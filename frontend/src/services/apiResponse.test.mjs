@@ -21,3 +21,13 @@ test("成功响应返回 JSON 数据", async () => {
 
   assert.deepEqual(data, { status: "ok" });
 });
+
+test("422 验证列表会返回具体字段错误", async () => {
+  await assert.rejects(
+    () => jsonOrThrow(new Response(JSON.stringify({ detail: [{ msg: "Value error, 用户名仅支持 3–32 位英文字母或数字" }] }), {
+      status: 422,
+      headers: { "Content-Type": "application/json" },
+    })),
+    { message: "用户名仅支持 3–32 位英文字母或数字" },
+  );
+});
