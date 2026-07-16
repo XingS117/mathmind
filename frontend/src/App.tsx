@@ -11,6 +11,7 @@ import AdminAccountsPage from "./pages/AdminAccountsPage";
 import { getActiveSession, uploadQuestion, fetchMe, logout, AuthUser, captureReferralVisit } from "./services/api";
 import SharePage from "./pages/SharePage";
 import AdminOperationsPage from "./pages/AdminOperationsPage";
+import { ICP_FILING, POLICE_FILING } from "./utils/filingInfo";
 
 type Page = "dashboard" | "upload" | "knowmap" | "tutor" | "settings" | "login" | "account" | "share" | "adminAccounts" | "adminOperations";
 type Grade = "初中" | "高中";
@@ -160,7 +161,11 @@ export default function App() {
       </main>
 
       <footer style={{ marginTop: 48, padding: "24px 0", textAlign: "center", fontSize: 14, fontWeight: 500, color: "var(--text-secondary)", letterSpacing: 0.5, borderTop: "1px solid var(--border)" }}>
-        文星 <span style={{ color: "var(--text-muted)", margin: "0 4px" }}>·</span> 上课认真听，下课用文星
+        <div>文星 <span style={{ color: "var(--text-muted)", margin: "0 4px" }}>·</span> 上课认真听，下课用文星</div>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "6px 14px", marginTop: 10, fontSize: 12, fontWeight: 400, letterSpacing: 0 }}>
+          <a href={ICP_FILING.href} target="_blank" rel="noreferrer" style={{ color: "inherit", textDecoration: "none" }}>{ICP_FILING.number}</a>
+          <a href={POLICE_FILING.href} target="_blank" rel="noreferrer" style={{ color: "inherit", textDecoration: "none" }} title="公安备案查询">公安备案 · {POLICE_FILING.number}</a>
+        </div>
       </footer>
     </div>
   );
