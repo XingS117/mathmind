@@ -1,0 +1,1587 @@
+{
+  "version": "2.0",
+  "source": "人教版A版2019高中 + 青岛出版社初中",
+  "description": "初高中数学知识图谱",
+  "node_count": 133,
+  "nodes": [
+    {
+      "id": "cz_qs1_c1",
+      "name": "第1章 基本的几何图形",
+      "parent_id": "cz_qs1",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "七年级上册",
+      "book_label": "七年级上册",
+      "sort_order": 1
+    },
+    {
+      "id": "cz_qs1_c2",
+      "name": "第2章 有理数",
+      "parent_id": "cz_qs1",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "七年级上册",
+      "book_label": "七年级上册",
+      "sort_order": 2
+    },
+    {
+      "id": "cz_qs1_c3",
+      "name": "第3章 有理数的运算",
+      "parent_id": "cz_qs1",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "七年级上册",
+      "book_label": "七年级上册",
+      "sort_order": 3
+    },
+    {
+      "id": "cz_qs1_c4",
+      "name": "第4章 数据的收集与整理",
+      "parent_id": "cz_qs1",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "七年级上册",
+      "book_label": "七年级上册",
+      "sort_order": 4
+    },
+    {
+      "id": "cz_qs1_c5",
+      "name": "第5章 代数式与函数的初步认识",
+      "parent_id": "cz_qs1",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "七年级上册",
+      "book_label": "七年级上册",
+      "sort_order": 5
+    },
+    {
+      "id": "cz_qs1_c6",
+      "name": "第6章 整式的加减",
+      "parent_id": "cz_qs1",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "七年级上册",
+      "book_label": "七年级上册",
+      "sort_order": 6
+    },
+    {
+      "id": "cz_qs1_c7",
+      "name": "第7章 一元一次方程",
+      "parent_id": "cz_qs1",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "七年级上册",
+      "book_label": "七年级上册",
+      "sort_order": 7
+    },
+    {
+      "id": "cz_qs1",
+      "name": "七年级上册",
+      "parent_id": null,
+      "level": 1,
+      "prerequisites": [],
+      "children": [
+        "cz_qs1_c1",
+        "cz_qs1_c2",
+        "cz_qs1_c3",
+        "cz_qs1_c4",
+        "cz_qs1_c5",
+        "cz_qs1_c6",
+        "cz_qs1_c7"
+      ],
+      "grade_level": "初中",
+      "grade": "七年级上册",
+      "book_label": "七年级上册",
+      "sort_order": 1
+    },
+    {
+      "id": "cz_qs2_c1",
+      "name": "第1章 角",
+      "parent_id": "cz_qs2",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "七年级下册",
+      "book_label": "七年级下册",
+      "sort_order": 1
+    },
+    {
+      "id": "cz_qs2_c2",
+      "name": "第2章 平行线",
+      "parent_id": "cz_qs2",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "七年级下册",
+      "book_label": "七年级下册",
+      "sort_order": 2
+    },
+    {
+      "id": "cz_qs2_c3",
+      "name": "第3章 一次方程组",
+      "parent_id": "cz_qs2",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "七年级下册",
+      "book_label": "七年级下册",
+      "sort_order": 3
+    },
+    {
+      "id": "cz_qs2_c4",
+      "name": "第4章 整式的乘除",
+      "parent_id": "cz_qs2",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "七年级下册",
+      "book_label": "七年级下册",
+      "sort_order": 4
+    },
+    {
+      "id": "cz_qs2_c5",
+      "name": "第5章 乘法公式与因式分解",
+      "parent_id": "cz_qs2",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "七年级下册",
+      "book_label": "七年级下册",
+      "sort_order": 5
+    },
+    {
+      "id": "cz_qs2_c6",
+      "name": "第6章 平面图形的认识",
+      "parent_id": "cz_qs2",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "七年级下册",
+      "book_label": "七年级下册",
+      "sort_order": 6
+    },
+    {
+      "id": "cz_qs2_c7",
+      "name": "第7章 位置与坐标",
+      "parent_id": "cz_qs2",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "七年级下册",
+      "book_label": "七年级下册",
+      "sort_order": 7
+    },
+    {
+      "id": "cz_qs2",
+      "name": "七年级下册",
+      "parent_id": null,
+      "level": 1,
+      "prerequisites": [],
+      "children": [
+        "cz_qs2_c1",
+        "cz_qs2_c2",
+        "cz_qs2_c3",
+        "cz_qs2_c4",
+        "cz_qs2_c5",
+        "cz_qs2_c6",
+        "cz_qs2_c7"
+      ],
+      "grade_level": "初中",
+      "grade": "七年级下册",
+      "book_label": "七年级下册",
+      "sort_order": 1
+    },
+    {
+      "id": "cz_bs1_c1",
+      "name": "第1章 全等三角形",
+      "parent_id": "cz_bs1",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "八年级上册",
+      "book_label": "八年级上册",
+      "sort_order": 1
+    },
+    {
+      "id": "cz_bs1_c2",
+      "name": "第2章 轴对称与轴对称图形",
+      "parent_id": "cz_bs1",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "八年级上册",
+      "book_label": "八年级上册",
+      "sort_order": 2
+    },
+    {
+      "id": "cz_bs1_c3",
+      "name": "第3章 分式",
+      "parent_id": "cz_bs1",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "八年级上册",
+      "book_label": "八年级上册",
+      "sort_order": 3
+    },
+    {
+      "id": "cz_bs1_c4",
+      "name": "第4章 数据分析",
+      "parent_id": "cz_bs1",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "八年级上册",
+      "book_label": "八年级上册",
+      "sort_order": 4
+    },
+    {
+      "id": "cz_bs1_c5",
+      "name": "第5章 几何证明初步",
+      "parent_id": "cz_bs1",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "八年级上册",
+      "book_label": "八年级上册",
+      "sort_order": 5
+    },
+    {
+      "id": "cz_bs1",
+      "name": "八年级上册",
+      "parent_id": null,
+      "level": 1,
+      "prerequisites": [],
+      "children": [
+        "cz_bs1_c1",
+        "cz_bs1_c2",
+        "cz_bs1_c3",
+        "cz_bs1_c4",
+        "cz_bs1_c5"
+      ],
+      "grade_level": "初中",
+      "grade": "八年级上册",
+      "book_label": "八年级上册",
+      "sort_order": 1
+    },
+    {
+      "id": "cz_bs2_c1",
+      "name": "第1章 平行四边形",
+      "parent_id": "cz_bs2",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "八年级下册",
+      "book_label": "八年级下册",
+      "sort_order": 1
+    },
+    {
+      "id": "cz_bs2_c2",
+      "name": "第2章 实数",
+      "parent_id": "cz_bs2",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "八年级下册",
+      "book_label": "八年级下册",
+      "sort_order": 2
+    },
+    {
+      "id": "cz_bs2_c3",
+      "name": "第3章 一元一次不等式",
+      "parent_id": "cz_bs2",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "八年级下册",
+      "book_label": "八年级下册",
+      "sort_order": 3
+    },
+    {
+      "id": "cz_bs2_c4",
+      "name": "第4章 二次根式",
+      "parent_id": "cz_bs2",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "八年级下册",
+      "book_label": "八年级下册",
+      "sort_order": 4
+    },
+    {
+      "id": "cz_bs2_c5",
+      "name": "第5章 一次函数",
+      "parent_id": "cz_bs2",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "八年级下册",
+      "book_label": "八年级下册",
+      "sort_order": 5
+    },
+    {
+      "id": "cz_bs2",
+      "name": "八年级下册",
+      "parent_id": null,
+      "level": 1,
+      "prerequisites": [],
+      "children": [
+        "cz_bs2_c1",
+        "cz_bs2_c2",
+        "cz_bs2_c3",
+        "cz_bs2_c4",
+        "cz_bs2_c5"
+      ],
+      "grade_level": "初中",
+      "grade": "八年级下册",
+      "book_label": "八年级下册",
+      "sort_order": 1
+    },
+    {
+      "id": "cz_js1_c1",
+      "name": "第1章 特殊四边形",
+      "parent_id": "cz_js1",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "九年级上册",
+      "book_label": "九年级上册",
+      "sort_order": 1
+    },
+    {
+      "id": "cz_js1_c2",
+      "name": "第2章 一元二次方程",
+      "parent_id": "cz_js1",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "九年级上册",
+      "book_label": "九年级上册",
+      "sort_order": 2
+    },
+    {
+      "id": "cz_js1_c3",
+      "name": "第3章 图形的相似",
+      "parent_id": "cz_js1",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "九年级上册",
+      "book_label": "九年级上册",
+      "sort_order": 3
+    },
+    {
+      "id": "cz_js1_c4",
+      "name": "第4章 圆",
+      "parent_id": "cz_js1",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "九年级上册",
+      "book_label": "九年级上册",
+      "sort_order": 4
+    },
+    {
+      "id": "cz_js1_c5",
+      "name": "第5章 解直角三角形",
+      "parent_id": "cz_js1",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "九年级上册",
+      "book_label": "九年级上册",
+      "sort_order": 5
+    },
+    {
+      "id": "cz_js1",
+      "name": "九年级上册",
+      "parent_id": null,
+      "level": 1,
+      "prerequisites": [],
+      "children": [
+        "cz_js1_c1",
+        "cz_js1_c2",
+        "cz_js1_c3",
+        "cz_js1_c4",
+        "cz_js1_c5"
+      ],
+      "grade_level": "初中",
+      "grade": "九年级上册",
+      "book_label": "九年级上册",
+      "sort_order": 1
+    },
+    {
+      "id": "cz_js2_c1",
+      "name": "第1章 二次函数",
+      "parent_id": "cz_js2",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "九年级下册",
+      "book_label": "九年级下册",
+      "sort_order": 1
+    },
+    {
+      "id": "cz_js2_c2",
+      "name": "第2章 投影与视图",
+      "parent_id": "cz_js2",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "九年级下册",
+      "book_label": "九年级下册",
+      "sort_order": 2
+    },
+    {
+      "id": "cz_js2_c3",
+      "name": "第3章 统计与概率的简单应用",
+      "parent_id": "cz_js2",
+      "level": 2,
+      "prerequisites": [],
+      "children": [],
+      "grade_level": "初中",
+      "grade": "九年级下册",
+      "book_label": "九年级下册",
+      "sort_order": 3
+    },
+    {
+      "id": "cz_js2",
+      "name": "九年级下册",
+      "parent_id": null,
+      "level": 1,
+      "prerequisites": [],
+      "children": [
+        "cz_js2_c1",
+        "cz_js2_c2",
+        "cz_js2_c3"
+      ],
+      "grade_level": "初中",
+      "grade": "九年级下册",
+      "book_label": "九年级下册",
+      "sort_order": 1
+    },
+    {
+      "id": "bx1",
+      "name": "必修第一册",
+      "parent_id": null,
+      "level": 1,
+      "prerequisites": [],
+      "children": [
+        "bx1_c1",
+        "bx1_c2",
+        "bx1_c3"
+      ],
+      "book_label": "必修一",
+      "sort_order": 1,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx1_c1",
+      "name": "第一章 集合与常用逻辑用语",
+      "parent_id": "bx1",
+      "level": 2,
+      "prerequisites": [],
+      "children": [
+        "bx1_c1_s1",
+        "bx1_c1_s2"
+      ],
+      "book_label": "必修一",
+      "sort_order": 1,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx1_c1_s1",
+      "name": "1.1 集合",
+      "parent_id": "bx1_c1",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修一",
+      "sort_order": 1,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx1_c1_s2",
+      "name": "1.2 常用逻辑用语",
+      "parent_id": "bx1_c1",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修一",
+      "sort_order": 2,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx1_c2",
+      "name": "第二章 等式与不等式",
+      "parent_id": "bx1",
+      "level": 2,
+      "prerequisites": [],
+      "children": [
+        "bx1_c2_s1",
+        "bx1_c2_s2"
+      ],
+      "book_label": "必修一",
+      "sort_order": 2,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx1_c2_s1",
+      "name": "2.1 等式",
+      "parent_id": "bx1_c2",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修一",
+      "sort_order": 1,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx1_c2_s2",
+      "name": "2.2 不等式",
+      "parent_id": "bx1_c2",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修一",
+      "sort_order": 2,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx1_c3",
+      "name": "第三章 函数",
+      "parent_id": "bx1",
+      "level": 2,
+      "prerequisites": [],
+      "children": [
+        "bx1_c3_s1",
+        "bx1_c3_s2",
+        "bx1_c3_s3",
+        "bx1_c3_s4"
+      ],
+      "book_label": "必修一",
+      "sort_order": 3,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx1_c3_s1",
+      "name": "3.1 函数的概念与性质",
+      "parent_id": "bx1_c3",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修一",
+      "sort_order": 1,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx1_c3_s2",
+      "name": "3.2 函数与方程、不等式之间的关系",
+      "parent_id": "bx1_c3",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修一",
+      "sort_order": 2,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx1_c3_s3",
+      "name": "3.3 函数的应用(一)",
+      "parent_id": "bx1_c3",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修一",
+      "sort_order": 3,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx1_c3_s4",
+      "name": "3.4 数学建模活动: 决定苹果的最佳出售时间点",
+      "parent_id": "bx1_c3",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修一",
+      "sort_order": 4,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx2",
+      "name": "必修第二册",
+      "parent_id": null,
+      "level": 1,
+      "prerequisites": [],
+      "children": [
+        "bx2_c4",
+        "bx2_c5",
+        "bx2_c6"
+      ],
+      "book_label": "必修二",
+      "sort_order": 2,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx2_c4",
+      "name": "第四章 指数函数、对数函数与幂函数",
+      "parent_id": "bx2",
+      "level": 2,
+      "prerequisites": [],
+      "children": [
+        "bx2_c4_s1",
+        "bx2_c4_s2",
+        "bx2_c4_s3",
+        "bx2_c4_s4",
+        "bx2_c4_s5",
+        "bx2_c4_s6",
+        "bx2_c4_s7"
+      ],
+      "book_label": "必修二",
+      "sort_order": 1,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx2_c4_s1",
+      "name": "4.1 指数与指数函数",
+      "parent_id": "bx2_c4",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修二",
+      "sort_order": 1,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx2_c4_s2",
+      "name": "4.2 对数与对数函数",
+      "parent_id": "bx2_c4",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修二",
+      "sort_order": 2,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx2_c4_s3",
+      "name": "4.3 指数函数与对数函数的关系",
+      "parent_id": "bx2_c4",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修二",
+      "sort_order": 3,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx2_c4_s4",
+      "name": "4.4 幂函数",
+      "parent_id": "bx2_c4",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修二",
+      "sort_order": 4,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx2_c4_s5",
+      "name": "4.5 增长速度的比较",
+      "parent_id": "bx2_c4",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修二",
+      "sort_order": 5,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx2_c4_s6",
+      "name": "4.6 函数的应用(二)",
+      "parent_id": "bx2_c4",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修二",
+      "sort_order": 6,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx2_c4_s7",
+      "name": "4.7 数学建模活动: 生长规律的描述",
+      "parent_id": "bx2_c4",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修二",
+      "sort_order": 7,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx2_c5",
+      "name": "第五章 统计与概率",
+      "parent_id": "bx2",
+      "level": 2,
+      "prerequisites": [],
+      "children": [
+        "bx2_c5_s1",
+        "bx2_c5_s2",
+        "bx2_c5_s3",
+        "bx2_c5_s4"
+      ],
+      "book_label": "必修二",
+      "sort_order": 2,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx2_c5_s1",
+      "name": "5.1 统计",
+      "parent_id": "bx2_c5",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修二",
+      "sort_order": 1,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx2_c5_s2",
+      "name": "5.2 数学探究活动: 由编号样本估计总体的分布",
+      "parent_id": "bx2_c5",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修二",
+      "sort_order": 2,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx2_c5_s3",
+      "name": "5.3 概率",
+      "parent_id": "bx2_c5",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修二",
+      "sort_order": 3,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx2_c5_s4",
+      "name": "5.4 统计与概率的应用",
+      "parent_id": "bx2_c5",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修二",
+      "sort_order": 4,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx2_c6",
+      "name": "第六章 平面向量初步",
+      "parent_id": "bx2",
+      "level": 2,
+      "prerequisites": [],
+      "children": [
+        "bx2_c6_s1",
+        "bx2_c6_s2",
+        "bx2_c6_s3"
+      ],
+      "book_label": "必修二",
+      "sort_order": 3,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx2_c6_s1",
+      "name": "6.1 平面向量及其线性运算",
+      "parent_id": "bx2_c6",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修二",
+      "sort_order": 1,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx2_c6_s2",
+      "name": "6.2 向量基本定理与向量的坐标",
+      "parent_id": "bx2_c6",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修二",
+      "sort_order": 2,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx2_c6_s3",
+      "name": "6.3 平面向量线性运算的应用",
+      "parent_id": "bx2_c6",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修二",
+      "sort_order": 3,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx3",
+      "name": "必修第三册",
+      "parent_id": null,
+      "level": 1,
+      "prerequisites": [],
+      "children": [
+        "bx3_c7",
+        "bx3_c8"
+      ],
+      "book_label": "必修三",
+      "sort_order": 3,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx3_c7",
+      "name": "第七章 三角函数",
+      "parent_id": "bx3",
+      "level": 2,
+      "prerequisites": [],
+      "children": [
+        "bx3_c7_s1",
+        "bx3_c7_s2",
+        "bx3_c7_s3",
+        "bx3_c7_s4"
+      ],
+      "book_label": "必修三",
+      "sort_order": 1,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx3_c7_s1",
+      "name": "7.1 任意角的概念与弧度制",
+      "parent_id": "bx3_c7",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修三",
+      "sort_order": 1,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx3_c7_s2",
+      "name": "7.2 任意角的三角函数",
+      "parent_id": "bx3_c7",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修三",
+      "sort_order": 2,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx3_c7_s3",
+      "name": "7.3 三角函数的性质与图像",
+      "parent_id": "bx3_c7",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修三",
+      "sort_order": 3,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx3_c7_s4",
+      "name": "7.4 数学建模活动: 周期现象的描述",
+      "parent_id": "bx3_c7",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修三",
+      "sort_order": 4,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx3_c8",
+      "name": "第八章 向量的数量积与三角恒等变换",
+      "parent_id": "bx3",
+      "level": 2,
+      "prerequisites": [],
+      "children": [
+        "bx3_c8_s1",
+        "bx3_c8_s2"
+      ],
+      "book_label": "必修三",
+      "sort_order": 2,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx3_c8_s1",
+      "name": "8.1 向量的数量积",
+      "parent_id": "bx3_c8",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修三",
+      "sort_order": 1,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx3_c8_s2",
+      "name": "8.2 三角恒等变换",
+      "parent_id": "bx3_c8",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修三",
+      "sort_order": 2,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx4",
+      "name": "必修第四册",
+      "parent_id": null,
+      "level": 1,
+      "prerequisites": [],
+      "children": [
+        "bx4_c9",
+        "bx4_c10",
+        "bx4_c11"
+      ],
+      "book_label": "必修四",
+      "sort_order": 4,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx4_c9",
+      "name": "第九章 解三角形",
+      "parent_id": "bx4",
+      "level": 2,
+      "prerequisites": [],
+      "children": [
+        "bx4_c9_s1",
+        "bx4_c9_s2",
+        "bx4_c9_s3"
+      ],
+      "book_label": "必修四",
+      "sort_order": 1,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx4_c9_s1",
+      "name": "9.1 正弦定理与余弦定理",
+      "parent_id": "bx4_c9",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修四",
+      "sort_order": 1,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx4_c9_s2",
+      "name": "9.2 正弦定理与余弦定理的应用",
+      "parent_id": "bx4_c9",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修四",
+      "sort_order": 2,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx4_c9_s3",
+      "name": "9.3 数学探究活动: 得到不确定的三角形吗",
+      "parent_id": "bx4_c9",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修四",
+      "sort_order": 3,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx4_c10",
+      "name": "第十章 复数",
+      "parent_id": "bx4",
+      "level": 2,
+      "prerequisites": [],
+      "children": [
+        "bx4_c10_s1",
+        "bx4_c10_s2",
+        "bx4_c10_s3"
+      ],
+      "book_label": "必修四",
+      "sort_order": 2,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx4_c10_s1",
+      "name": "10.1 复数及其几何意义",
+      "parent_id": "bx4_c10",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修四",
+      "sort_order": 1,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx4_c10_s2",
+      "name": "10.2 复数的运算",
+      "parent_id": "bx4_c10",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修四",
+      "sort_order": 2,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx4_c10_s3",
+      "name": "10.3 复数的三角形式及其运算",
+      "parent_id": "bx4_c10",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修四",
+      "sort_order": 3,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx4_c11",
+      "name": "第十一章 立体几何初步",
+      "parent_id": "bx4",
+      "level": 2,
+      "prerequisites": [],
+      "children": [
+        "bx4_c11_s1",
+        "bx4_c11_s2",
+        "bx4_c11_s3",
+        "bx4_c11_s4",
+        "bx4_c11_s5",
+        "bx4_c11_s6",
+        "bx4_c11_s7"
+      ],
+      "book_label": "必修四",
+      "sort_order": 3,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx4_c11_s1",
+      "name": "11.1 空间几何体",
+      "parent_id": "bx4_c11",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修四",
+      "sort_order": 1,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx4_c11_s2",
+      "name": "11.2 平面的基本事实与推论",
+      "parent_id": "bx4_c11",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修四",
+      "sort_order": 2,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx4_c11_s3",
+      "name": "11.3 空间中的平行关系",
+      "parent_id": "bx4_c11",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修四",
+      "sort_order": 3,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx4_c11_s4",
+      "name": "11.4 空间中的垂直关系",
+      "parent_id": "bx4_c11",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修四",
+      "sort_order": 4,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx4_c11_s5",
+      "name": "11.5 空间中的距离",
+      "parent_id": "bx4_c11",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修四",
+      "sort_order": 5,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx4_c11_s6",
+      "name": "11.6 简单几何体的再认识",
+      "parent_id": "bx4_c11",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修四",
+      "sort_order": 6,
+      "grade_level": "高中"
+    },
+    {
+      "id": "bx4_c11_s7",
+      "name": "11.7 数学探究活动: 长方体中的几何量的计算",
+      "parent_id": "bx4_c11",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "必修四",
+      "sort_order": 7,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb1",
+      "name": "选择性必修第一册",
+      "parent_id": null,
+      "level": 1,
+      "prerequisites": [],
+      "children": [
+        "xb1_c1",
+        "xb1_c2"
+      ],
+      "book_label": "选择性必修一",
+      "sort_order": 5,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb1_c1",
+      "name": "第一章 空间向量与立体几何",
+      "parent_id": "xb1",
+      "level": 2,
+      "prerequisites": [],
+      "children": [
+        "xb1_c1_s1",
+        "xb1_c1_s2"
+      ],
+      "book_label": "选择性必修一",
+      "sort_order": 1,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb1_c1_s1",
+      "name": "1.1 空间向量及其运算",
+      "parent_id": "xb1_c1",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "选择性必修一",
+      "sort_order": 1,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb1_c1_s2",
+      "name": "1.2 空间向量在立体几何中的应用",
+      "parent_id": "xb1_c1",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "选择性必修一",
+      "sort_order": 2,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb1_c2",
+      "name": "第二章 平面解析几何",
+      "parent_id": "xb1",
+      "level": 2,
+      "prerequisites": [],
+      "children": [
+        "xb1_c2_s1",
+        "xb1_c2_s2",
+        "xb1_c2_s3",
+        "xb1_c2_s4",
+        "xb1_c2_s5",
+        "xb1_c2_s6",
+        "xb1_c2_s7",
+        "xb1_c2_s8"
+      ],
+      "book_label": "选择性必修一",
+      "sort_order": 2,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb1_c2_s1",
+      "name": "2.1 坐标法",
+      "parent_id": "xb1_c2",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "选择性必修一",
+      "sort_order": 1,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb1_c2_s2",
+      "name": "2.2 直线及其方程",
+      "parent_id": "xb1_c2",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "选择性必修一",
+      "sort_order": 2,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb1_c2_s3",
+      "name": "2.3 圆及其方程",
+      "parent_id": "xb1_c2",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "选择性必修一",
+      "sort_order": 3,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb1_c2_s4",
+      "name": "2.4 曲线与方程",
+      "parent_id": "xb1_c2",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "选择性必修一",
+      "sort_order": 4,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb1_c2_s5",
+      "name": "2.5 椭圆及其方程",
+      "parent_id": "xb1_c2",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "选择性必修一",
+      "sort_order": 5,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb1_c2_s6",
+      "name": "2.6 双曲线及其方程",
+      "parent_id": "xb1_c2",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "选择性必修一",
+      "sort_order": 6,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb1_c2_s7",
+      "name": "2.7 抛物线及其方程",
+      "parent_id": "xb1_c2",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "选择性必修一",
+      "sort_order": 7,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb1_c2_s8",
+      "name": "2.8 直线与圆锥曲线的位置关系",
+      "parent_id": "xb1_c2",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "选择性必修一",
+      "sort_order": 8,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb2",
+      "name": "选择性必修第二册",
+      "parent_id": null,
+      "level": 1,
+      "prerequisites": [],
+      "children": [
+        "xb2_c3",
+        "xb2_c4"
+      ],
+      "book_label": "选择性必修二",
+      "sort_order": 6,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb2_c3",
+      "name": "第三章 排列、组合与二项式定理",
+      "parent_id": "xb2",
+      "level": 2,
+      "prerequisites": [],
+      "children": [
+        "xb2_c3_s1",
+        "xb2_c3_s2"
+      ],
+      "book_label": "选择性必修二",
+      "sort_order": 1,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb2_c3_s1",
+      "name": "3.1 排列与组合",
+      "parent_id": "xb2_c3",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "选择性必修二",
+      "sort_order": 1,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb2_c3_s2",
+      "name": "3.2 二项式定理",
+      "parent_id": "xb2_c3",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "选择性必修二",
+      "sort_order": 2,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb2_c4",
+      "name": "第四章 概率与统计",
+      "parent_id": "xb2",
+      "level": 2,
+      "prerequisites": [],
+      "children": [
+        "xb2_c4_s1",
+        "xb2_c4_s2",
+        "xb2_c4_s3"
+      ],
+      "book_label": "选择性必修二",
+      "sort_order": 2,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb2_c4_s1",
+      "name": "4.1 条件概率与事件的独立性",
+      "parent_id": "xb2_c4",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "选择性必修二",
+      "sort_order": 1,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb2_c4_s2",
+      "name": "4.2 随机变量",
+      "parent_id": "xb2_c4",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "选择性必修二",
+      "sort_order": 2,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb2_c4_s3",
+      "name": "4.3 统计模型",
+      "parent_id": "xb2_c4",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "选择性必修二",
+      "sort_order": 3,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb3",
+      "name": "选择性必修第三册",
+      "parent_id": null,
+      "level": 1,
+      "prerequisites": [],
+      "children": [
+        "xb3_c5",
+        "xb3_c6"
+      ],
+      "book_label": "选择性必修三",
+      "sort_order": 7,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb3_c5",
+      "name": "第五章 数列",
+      "parent_id": "xb3",
+      "level": 2,
+      "prerequisites": [],
+      "children": [
+        "xb3_c5_s1",
+        "xb3_c5_s2",
+        "xb3_c5_s3",
+        "xb3_c5_s4",
+        "xb3_c5_s5"
+      ],
+      "book_label": "选择性必修三",
+      "sort_order": 1,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb3_c5_s1",
+      "name": "5.1 数列基础",
+      "parent_id": "xb3_c5",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "选择性必修三",
+      "sort_order": 1,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb3_c5_s2",
+      "name": "5.2 等差数列",
+      "parent_id": "xb3_c5",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "选择性必修三",
+      "sort_order": 2,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb3_c5_s3",
+      "name": "5.3 等比数列",
+      "parent_id": "xb3_c5",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "选择性必修三",
+      "sort_order": 3,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb3_c5_s4",
+      "name": "5.4 数学归纳法",
+      "parent_id": "xb3_c5",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "选择性必修三",
+      "sort_order": 4,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb3_c5_s5",
+      "name": "5.5 数列的应用",
+      "parent_id": "xb3_c5",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "选择性必修三",
+      "sort_order": 5,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb3_c6",
+      "name": "第六章 导数及其应用",
+      "parent_id": "xb3",
+      "level": 2,
+      "prerequisites": [],
+      "children": [
+        "xb3_c6_s1",
+        "xb3_c6_s2",
+        "xb3_c6_s3",
+        "xb3_c6_s4"
+      ],
+      "book_label": "选择性必修三",
+      "sort_order": 2,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb3_c6_s1",
+      "name": "6.1 导数",
+      "parent_id": "xb3_c6",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "选择性必修三",
+      "sort_order": 1,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb3_c6_s2",
+      "name": "6.2 利用导数研究函数的性质",
+      "parent_id": "xb3_c6",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "选择性必修三",
+      "sort_order": 2,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb3_c6_s3",
+      "name": "6.3 利用导数解决实际问题",
+      "parent_id": "xb3_c6",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "选择性必修三",
+      "sort_order": 3,
+      "grade_level": "高中"
+    },
+    {
+      "id": "xb3_c6_s4",
+      "name": "6.4 数学探究活动: 生长规律的描述",
+      "parent_id": "xb3_c6",
+      "level": 3,
+      "prerequisites": [],
+      "children": [],
+      "book_label": "选择性必修三",
+      "sort_order": 4,
+      "grade_level": "高中"
+    }
+  ]
+}
